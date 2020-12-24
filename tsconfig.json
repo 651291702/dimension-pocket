@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target":  "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "lib": ["ES2015", "ES2017", "DOM", "ESNext"],
+    "importHelpers": true,
+    "sourceMap": true,
+    "allowJs": true,
+    "outDir": "out.js",
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": "./",
+    "rootDir": "./src",   // rollup typescript plugin should content this property
+    "paths": {
+      "~/*": ["./src/*"]
+    },
+    "isolatedModules": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist/**/*", "script/*.js"],
+}
