@@ -4,6 +4,7 @@ export function isRender(): boolean {
   return process && process.type === "renderer"
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getEleModule(key: string): any {
   let ele = electron
   if (isRender()) {
