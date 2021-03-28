@@ -7,7 +7,8 @@
     "dev:vite": "vite",
     "dev:ele": "node script/build --env=development --watch",
     "build": "vite build",
-    "lint": "eslint --cache --fix"
+    "lint": "eslint --cache --fix",
+    "postinstall": "husky install"
   },
   "dependencies": {
     "element-plus": "^1.0.1-beta.14",
@@ -45,11 +46,6 @@
     "typescript": "^4.1.3",
     "vite": "^1.0.0-rc.13",
     "wait-on": "^5.2.0"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
   },
   "lint-staged": {
     "src/**/*.{js,ts,tsx}": [
