@@ -14,18 +14,16 @@ dotenv.config({ path: path.join(__dirname, "../", ".env") })
 const LogFile = "[script|build.js]"
 
 // Make hot-reload in main process when command line with --watch
+/**
+ * 可能是由于将vite@1 -> vite@2 ， 导致wait-on无法监听3000端口服务
+ * 从 http://localhost:3000 => tcp:3000 正常工作
+ */
 if (argv.watch) {
-  waitOn(
-    {
-      resources: ["http://localhost:3000"],
-      log: false,
-    },
-    (err) => {
-      if (err) {
-        console.info(err)
-        process.exit(1)
-      }
-
+  waitOn({
+    resources: ["tcp:3000"],
+    log: true,
+  })
+    .then(function () {
       const watcher = rollup.watch(config)
 
       watcher.on("change", (filename) => {
@@ -40,8 +38,13 @@ if (argv.watch) {
           console.info(LogFile, chalk.red(`Watch Error`), ev.error)
         }
       })
-    }
-  )
+    })
+    .catch(function (err) {
+      if (err) {
+        console.info(err)
+        process.exit(1)
+      }
+    })
 }
 //  only build target
 else {

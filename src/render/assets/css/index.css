@@ -1,0 +1,62 @@
+/* https://stackoverflow.com/questions/47607602/how-to-add-a-tailwind-css-rule-to-css-checker */
+
+/*! @import */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+button:focus {
+  outline: 0 !important;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+/* Page transition */
+
+.slide-left-enter-active,
+.slide-left-leave-active {
+  position: absolute;
+  transition: transform 0.5s ease;
+  z-index: 0;
+}
+
+.slide-left-enter-from {
+  transform: translateX(100%);
+  opacity: 0.5;
+}
+
+.slide-left-enter-to {
+}
+.slide-left-leave-from {
+}
+
+.slide-left-leave-to {
+  transform: translateX(-100%);
+  opacity: 0.5;
+}
+
+.slide-right-enter-active,
+.slide-right-leave-active {
+  position: absolute;
+  transition: transform 0.5s ease;
+  z-index: 0;
+}
+
+.slide-right-enter-from {
+  transform: translateX(-100%);
+  opacity: 0.5;
+}
+
+.slide-right-enter-to {
+}
+.slide-right-leave-from {
+}
+
+.slide-right-leave-to {
+  transform: translateX(100%);
+  opacity: 0.5;
+}

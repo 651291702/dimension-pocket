@@ -39,11 +39,17 @@ function createWin(config: BrowserWindowConstructorOptions | void) {
   // 创建浏览器窗口
   const overrideConf: BrowserWindowConstructorOptions = Object.assign(
     {
-      width: 1024,
+      width: 1280,
       height: 720,
       webPreferences: {
         enableRemoteModule: true,
         devTools: true,
+        /**
+         * 理论上并不推荐使用nodeIntefration标志，安全操作：将操作在main线程中实现，利用通信机制
+         * @see https://www.electronjs.org/docs/api/browser-window
+         * 主要考虑该项目仅为个人用途且方便文件操作，故打开开关
+         */
+        nodeIntegration: true,
       },
     } as BrowserWindowConstructorOptions,
     config || {}

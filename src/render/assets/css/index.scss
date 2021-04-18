@@ -1,0 +1,17 @@
+@import "./function.scss";
+
+.text-line {
+  @include trim;
+}
+
+.text-lien-tow {
+  @include trim(2);
+}
+
+.text-line-three {
+  @include trim(3);
+}
+
+.vertical-middle {
+  @include vertical-middle;
+}

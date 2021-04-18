@@ -1,8 +1,8 @@
 // Only work in main render
 import { app, App } from "electron"
-import { join } from "path"
-import { existsSync, mkdirSync } from "fs"
-import log4js, { configure, getLogger, levels } from "log4js"
+const { join } = require("path")
+const { existsSync, mkdirSync } = require("fs")
+import { default as log4js, configure, getLogger, levels } from "log4js"
 import { isRender, getEleModule } from "~/commons/util"
 
 let udDir: string // userData directory
