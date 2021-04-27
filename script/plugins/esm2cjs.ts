@@ -9,6 +9,7 @@ import { sep } from "path"
  */
 
 const reg = /import[\n\s]+([\S\s]+?)[\n\s]*from[\n\s]*(['|"](\S+)['|"])/g
+// const reg = /import[\n\s]+([\S\s]+?)[\n\s]*from[\n\s]*(['|"](\S+)['|"])(.*)[\r\n]?/g     匹配一行
 
 export default function (options: { includes: string[] }) {
   return {
@@ -19,7 +20,6 @@ export default function (options: { includes: string[] }) {
       }
 
       const res = code.match(reg)
-
       if (res) {
         code = code.replace(reg, function ($, to, from, lib) {
           if (!options.includes.includes(lib)) {

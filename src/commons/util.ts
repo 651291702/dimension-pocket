@@ -46,3 +46,11 @@ export function createFile(dir: string, path: string): void {
     }
   }
 }
+
+export function createDir(dir: string) {
+  try {
+    accessSync(dir, constants.F_OK)
+  } catch (e) {
+    mkdirSync(dir, { recursive: true })
+  }
+}

@@ -1,6 +1,9 @@
 {
   "parser": "@typescript-eslint/parser",
-  "extends": ["plugin:@typescript-eslint/recommended"],
+  "extends": [
+    "plugin:@typescript-eslint/recommended"
+    // "plugin:vue/recommended"   // 对应插件eslint-plugin-vue
+  ],
   "plugins": ["@typescript-eslint"],
   "parserOptions": {
     "ecmaVersion": 2017,
@@ -13,7 +16,8 @@
     "no-unused-vars": "off",
     "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/ban-ts-comment": "off"
+    "@typescript-eslint/ban-ts-comment": "off",
+    "vue/html-self-closing": "off"
   },
   "env": {
     "browser": true,

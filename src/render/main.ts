@@ -1,5 +1,5 @@
 import { createApp } from "vue"
-import ElementPlus from "element-plus"
+import ElementPlus, { ElMessage } from "element-plus"
 import App from "./App.vue"
 import "element-plus/lib/theme-chalk/index.css"
 import "@/assets/css/index.css"
@@ -7,7 +7,15 @@ import "@/assets/css/index.scss"
 import routes from "./routes"
 import { createRouter, createWebHistory } from "vue-router"
 import LuckyIcon from "@/components/icon/index.vue"
-import { getUserDataPath } from "~/commons/util"
+import { getUserDataPath, getEleModule } from "~/commons/util"
+import EventBus from "~/commons/eventbus"
+
+declare module "@vue/runtime-core" {
+  export interface ComponentCustomProperties {
+    $bus: EventBus
+    $message: typeof ElMessage
+  }
+}
 
 const app = createApp(App)
 const router = createRouter({
@@ -31,3 +39,5 @@ router.afterEach((to, from) => {
 app.component("lucky-icon", LuckyIcon)
 
 app.use(ElementPlus).use(router).mount("#app")
+
+app.config.globalProperties.$bus = new EventBus()

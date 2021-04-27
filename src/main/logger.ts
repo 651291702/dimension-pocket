@@ -91,14 +91,14 @@ class Logger {
     this.instance = getLogger(category)
     this.instance.addContext("filename", filename)
   }
-  info(message: string) {
-    return this.instance.info(message)
+  info(message: any, ...args: any[]) {
+    return this.instance.info(message, ...args)
   }
-  error(message: string) {
-    return this.instance.error(message)
+  error(message: any, ...args: any[]) {
+    return this.instance.error(message, ...args)
   }
-  warn(message: string) {
-    return this.instance.warn(message)
+  warn(message: any, ...args: any[]) {
+    return this.instance.warn(message, ...args)
   }
 }
 

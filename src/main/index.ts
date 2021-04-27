@@ -2,11 +2,14 @@
  * electron 主文件
  */
 import { join } from "path"
-import { app, BrowserWindow, BrowserWindowConstructorOptions } from "electron"
+import { app, BrowserWindow, BrowserWindowConstructorOptions, Menu } from "electron"
 import is_dev from "electron-is-dev"
 import { createLogger } from "~/main/logger"
+import EventBus from "~/commons/eventbus"
+import VideoDlerManager from "./video-downloader/manager"
 
 let win: BrowserWindow
+let bus: EventBus
 
 /**
  * Single Instance Mode
@@ -33,14 +36,14 @@ function existInstance(): boolean {
   return false
 }
 
-function createWin(): void
-function createWin(config: BrowserWindowConstructorOptions): void
-function createWin(config: BrowserWindowConstructorOptions | void) {
+function createWin(): BrowserWindow
+function createWin(config: BrowserWindowConstructorOptions): BrowserWindow
+function createWin(config: BrowserWindowConstructorOptions | void): BrowserWindow {
   // 创建浏览器窗口
   const overrideConf: BrowserWindowConstructorOptions = Object.assign(
     {
-      width: 1280,
-      height: 720,
+      width: 1080,
+      height: 700,
       webPreferences: {
         enableRemoteModule: true,
         devTools: true,
@@ -59,11 +62,21 @@ function createWin(config: BrowserWindowConstructorOptions | void) {
   const URL = is_dev ? "http://localhost:3000" : `file://${join(__dirname, "../render/index.html")}`
   win.loadURL(URL)
   win.webContents.openDevTools()
+  return win
 }
 
 function main(): void {
   if (existInstance()) return
-  app.whenReady().then(createWin)
+  app
+    .whenReady()
+    .then(createWin)
+    .then(() => {
+      Menu.setApplicationMenu(null)
+    })
+    .then(() => {
+      bus = new EventBus(win.webContents)
+      new VideoDlerManager(bus)
+    })
 }
 
 main()

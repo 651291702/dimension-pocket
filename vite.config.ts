@@ -17,7 +17,7 @@ const config: UserConfig = {
       "@": join(__dirname, "src/render"),
     },
   },
-  plugins: [esm2cjs({ includes: ["fs", "path"] }), vue()],
+  plugins: [esm2cjs({ includes: ["fs", "path", "got", "stream", "util", "nedb-promises", "tunnel"] }), vue()],
 }
 
 export default config

@@ -6,6 +6,8 @@
   "rules": {
     "at-rule-no-unknown": null,
     "block-no-empty": null,
-    "rule-empty-line-before": null
+    "rule-empty-line-before": null,
+    "declaration-colon-newline-after": null,
+    "value-list-comma-newline-after": null
   }
 }

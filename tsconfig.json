@@ -17,7 +17,7 @@
       "@/*": ["./src/render/*"]
     },
     "isolatedModules": true,
-    "types": ["vite/client", "node", "nedb"]
+    "types": ["vite/client", "node", "nedb", "tunnel", "fluent-ffmpeg"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist/**/*", "script/*.js"],
