@@ -26,7 +26,11 @@ export function generateProxy(target: any, option: ProxyOptions) {
 export function generateHeaders(target: any, option: RequestHeaders) {
   if (!target) target = {}
 
-  target.headers = option
+  target.headers = Object.keys(option).reduce((o: any, k) => {
+    o[k.toLowerCase()] = option[k]
+    o[k] = option[k]
+    return o
+  }, {})
 
   return target
 }
@@ -35,8 +39,17 @@ export function download(
   url: string,
   dir: string,
   filename: string,
-  opt?: Partial<OptionsOfTextResponseBody>
+  opt?: Partial<OptionsOfTextResponseBody>,
+  transform?: any
 ): Promise<any> {
   const target = join(dir, filename)
-  return pipeline(got.stream(url, opt as any), fs.createWriteStream(target))
+  if (transform) {
+    return pipeline(got.stream(url, opt as any), transform, fs.createWriteStream(target))
+  } else {
+    return pipeline(got.stream(url, opt as any), fs.createWriteStream(target))
+  }
+}
+
+export function get(url: string, opt?: Partial<OptionsOfTextResponseBody>) {
+  return got(url, opt)
 }

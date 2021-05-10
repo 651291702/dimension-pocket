@@ -23,7 +23,7 @@ export type VideoItem = {
   headers?: RequestHeaders
   proxy?: ProxyOptions
   totalSegs?: number
-  prefix: string
+  prefix?: string
 }
 
 export default ins

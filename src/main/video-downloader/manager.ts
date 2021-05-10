@@ -1,6 +1,6 @@
 import got from "got"
 import EventBus, { VideoDLerEvent } from "~/commons/eventbus"
-import { download, generateProxy, generateHeaders } from "~/commons/request"
+import { download, get, generateProxy, generateHeaders } from "~/commons/request"
 import { buildAbsoluteURL } from "url-toolkit"
 // @ts-ignore
 import { Parser } from "m3u8-parser"
@@ -11,13 +11,35 @@ import { createDir } from "~/commons/util"
 import Joiner from "./ts-merge"
 import { TaskStatus, TaskSegStatus } from "./typs"
 import { createLogger } from "~/main/logger"
+import { createDecipheriv } from "crypto"
+import { readFileSync } from "fs"
 
-const logger = createLogger("video-manager.ts")
+const logger = createLogger("main/video-manager.ts")
+
+const NetUrlRex = /^http/
 
 type Segment = {
   duration: number
   uri: string
-  [key: string]: number | string
+  key?: {
+    method: string
+    uri: string
+    iv?: Uint32Array
+  }
+  [key: string]: number | string | any
+}
+
+function generateRequestOption(video: VideoItem) {
+  const opt = {}
+  if (video.proxy) {
+    generateProxy(opt, video.proxy)
+  }
+
+  if (video.headers) {
+    generateHeaders(opt, video.headers)
+  }
+
+  return opt
 }
 
 export default class DownloaderManager {
@@ -44,13 +66,30 @@ export default class DownloaderManager {
         return
       }
 
-      const m3u8Text = await got.get(info.url).text()
+      let m3u8Text
+
+      if (info.url.match(NetUrlRex)) {
+        m3u8Text = await get(info.url, generateRequestOption(oriVideo)).text()
+      } else {
+        m3u8Text = readFileSync(info.url, "utf8")
+      }
 
       const parser = new Parser()
       parser.push(m3u8Text)
       parser.end()
 
-      const segments = parser.manifest.segments || []
+      let segments: Segment[] = parser.manifest.segments || []
+
+      segments = segments.filter((seg, idx) => {
+        const baseurl = getBaseUrl(oriVideo)
+        const url = buildAbsoluteURL(baseurl, seg.uri)
+        if (url.match(NetUrlRex)) {
+          return true
+        } else {
+          logger.error(`Video ${oriVideo.name} segment No.${idx} url is invalid`)
+          return false
+        }
+      })
 
       await updateSegLen(oriVideo._id, segments.length)
 
@@ -65,7 +104,7 @@ export default class DownloaderManager {
     })
 
     bus.on(VideoDLerEvent.TaskStarting, (_, _id: string) => {
-      for (let task of this.tasks) {
+      for (const task of this.tasks) {
         if (task.id === _id) {
           task.start()
           break
@@ -74,7 +113,7 @@ export default class DownloaderManager {
     })
 
     bus.on(VideoDLerEvent.TaskStoping, (_, _id: string) => {
-      for (let task of this.tasks) {
+      for (const task of this.tasks) {
         if (task.id === _id) {
           task.stop()
           break
@@ -108,6 +147,42 @@ export default class DownloaderManager {
   }
 }
 
+function getBaseUrl(video: VideoItem) {
+  if (video.prefix) {
+    return video.prefix
+  }
+  if (video.url.match(NetUrlRex)) {
+    return video.url
+  }
+  return ""
+}
+
+/**
+ * Return a hex buffer
+ */
+function normalizateKey(key: Buffer) {
+  if (key.byteLength === 16) {
+    return key
+  }
+
+  // 其余情况假设key为编码为utf8的 hex string
+
+  return Buffer.from(key.toString("utf8").padStart(32, "0"), "hex")
+}
+
+function normalizateIv(v: Uint32Array | number | string) {
+  let result
+  if (typeof v === "number") {
+    result = Buffer.from(v.toString().padStart(32, "0"), "hex")
+  } else if (typeof v === "string") {
+    result = Buffer.from(v.padStart(32, "0"), "hex")
+  } else {
+    result = Buffer.from(v.buffer)
+  }
+
+  return result
+}
+
 const DefaultTryCount = 5
 
 class Task {
@@ -124,6 +199,13 @@ class Task {
   private thread: number
   private stopThread: number
   private joiner: Joiner
+  /**
+   * 视频解密
+   */
+  private encode: boolean
+  private waitKey: boolean
+  private _key?: Buffer
+
   constructor(bus: EventBus, id: string, video: VideoItem, segments: Segment[]) {
     this.id = id
     this.bus = bus
@@ -131,9 +213,11 @@ class Task {
     this.segments = segments
     this.segLen = video.totalSegs || 0
     this.segs = []
-    this.options = {}
+    this.options = generateRequestOption(video)
     this.thread = 5
     this.stopThread = 0
+    this.encode = false
+    this.waitKey = false
     this.joiner = new Joiner(video.dir, video.name, this.segLen)
     this.tryCountSegs = Array(this.segLen).fill(0)
 
@@ -146,6 +230,14 @@ class Task {
       this.status = TaskStatus.paused
     }
 
+    const keyInfo = segments[0] && segments[0].key
+    if (keyInfo && keyInfo.uri) {
+      this.encode = true
+      this.getKey(keyInfo.uri).then((key) => {
+        this.key = key
+      })
+    }
+
     video.segs.forEach((idx) => {
       this.segs[idx] = TaskSegStatus.downloaded
     })
@@ -155,17 +247,21 @@ class Task {
       }
     }
 
-    if (video.proxy) {
-      generateProxy(this.options, video.proxy)
-    }
-
-    if (video.headers) {
-      generateHeaders(this.options, video.headers)
-    }
-
     this.dir = join(video.dir, video.name)
 
     this.emitTaskInfo()
+  }
+
+  async getKey(uri: string) {
+    const baseurl = getBaseUrl(this.video)
+    const url = buildAbsoluteURL(baseurl, uri)
+    if (!url.match(NetUrlRex)) {
+      logger.error(`Get video ${this.video.name} encrty key failed And the url is ${url}`)
+      throw new Error("Url Valid")
+    }
+    return get(url, this.options)
+      .buffer()
+      .then((buff) => normalizateKey(buff))
   }
 
   emitTaskInfo() {
@@ -189,6 +285,12 @@ class Task {
 
   start() {
     if (this.status !== TaskStatus.paused) return
+    // 等待key下载
+    if (this.encode && !this.key) {
+      this.waitKey = true
+      return
+    }
+
     this.status = TaskStatus.started
     createDir(this.dir)
 
@@ -227,7 +329,7 @@ class Task {
     }
   }
 
-  async threadDownload(from: number = 0) {
+  async threadDownload(from = 0) {
     if (this.status !== TaskStatus.started) {
       this.threadUpdate()
       return
@@ -244,8 +346,9 @@ class Task {
     this.bus.emit(VideoDLerEvent.TaskUpdated, this.id, this.segs)
 
     let error = false
-    await this.download(idx).catch((err) => {
-      logger.error(`download ${this.video.name} with index ${idx} failed`, err)
+    await this.downloadSeg(idx).catch((err) => {
+      logger.error(`download ${this.video.name} with index ${idx} failed`)
+      console.log(err)
       this.tryCountSegs[idx]++
       this.segs[idx] = TaskSegStatus.idel
       error = true
@@ -267,7 +370,7 @@ class Task {
     }
   }
 
-  findAvailable(from: number = 0) {
+  findAvailable(from = 0) {
     let i = from
     while (i < this.segLen) {
       if (this.segs[i] === TaskSegStatus.idel) {
@@ -281,15 +384,34 @@ class Task {
   /**
    * 下載某個片段
    */
-  async download(idx: number) {
+  async downloadSeg(idx: number) {
     const segment = this.segments[idx]
-    const baseurl = this.video.prefix || this.video.url
+    const baseurl = getBaseUrl(this.video)
     const url = buildAbsoluteURL(baseurl, segment.uri)
-    await download(url, this.dir, `${idx}.ts`, this.options)
+    if (!this.encode) {
+      await download(url, this.dir, `${idx}.ts`, this.options)
+    } else {
+      const iv = normalizateIv(segment.key?.iv || idx)
+      const algorithm = `${segment.key?.method}-cbc`.toLowerCase()
+      const cipher = createDecipheriv(algorithm, this.key as Buffer, iv)
+      await download(url, this.dir, `${idx}.ts`, this.options, cipher)
+    }
   }
 
   destory() {
     this.stop()
     this.joiner.destory()
+  }
+
+  set key(k: Buffer | undefined) {
+    this._key = k
+    if (this.waitKey) {
+      this.waitKey = false
+      this.start()
+    }
+  }
+
+  get key() {
+    return this._key
   }
 }

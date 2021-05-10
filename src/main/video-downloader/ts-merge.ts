@@ -59,7 +59,7 @@ export default class Joiner {
         .audioCodec("copy")
         .save(filePath)
         .on("error", function (...args) {
-          logger.error(`join ts fragement failed`, ...args)
+          logger.error("join ts fragement failed", ...args)
         })
         .on("end", () => {
           this.joining = false
