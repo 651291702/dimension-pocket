@@ -12,9 +12,9 @@ import Joiner from "./ts-merge"
 import { TaskStatus, TaskSegStatus } from "./typs"
 import { createLogger } from "~/main/logger"
 import { createDecipheriv } from "crypto"
-import { readFileSync } from "fs"
+import { readFileSync, accessSync, constants, rmSync } from "fs"
 
-const logger = createLogger("main/video-manager.ts")
+const logger = createLogger("main/video-manager")
 
 const NetUrlRex = /^http/
 
@@ -277,6 +277,10 @@ class Task {
   async mergeFragments() {
     if (this.segLen > 0) {
       await this.joiner.start()
+      try {
+        accessSync(this.dir, constants.F_OK)
+        rmSync(this.dir, { recursive: true, force: true })
+      } catch (e) {}
       updateMergeFlag(this.id)
       this.status = TaskStatus.merged
       this.bus.emit(VideoDLerEvent.TaskStatusChanged, this.id, this.status)
@@ -348,7 +352,7 @@ class Task {
     let error = false
     await this.downloadSeg(idx).catch((err) => {
       logger.error(`download ${this.video.name} with index ${idx} failed`)
-      console.log(err)
+      logger.error(err)
       this.tryCountSegs[idx]++
       this.segs[idx] = TaskSegStatus.idel
       error = true

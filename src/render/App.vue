@@ -25,6 +25,9 @@ import { defineComponent, computed } from "vue"
 export default defineComponent({
   name: "App",
   components: {},
+  mounted() {
+    this.goHome()
+  },
   methods: {
     goHome() {
       this.$router.replace("/")

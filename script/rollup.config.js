@@ -7,7 +7,7 @@ const json = require("@rollup/plugin-json")
 module.exports = {
   input: path.join(__dirname, "../src/main/index.ts"),
   output: {
-    file: path.join(__dirname, "../dist/main/_.js"),
+    file: path.join(__dirname, "../build/_.js"),
     format: "cjs",
     sourcemap: true,
   },

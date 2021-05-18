@@ -1,16 +1,23 @@
 {
   "name": "dimension-pocket",
-  "version": "0.0.0",
-  "main": "dist/main/_.js",
+  "version": "0.0.1",
+  "main": "build/_.js",
+  "author": {
+    "name": "gajon"
+  },
   "scripts": {
     "dev": "concurrently -n=vue,ele -c=green,blue \"yarn dev:vite\" \"yarn dev:ele\"",
     "dev:vite": "vite",
     "dev:ele": "node script/build --env=development --watch",
-    "build": "vite build",
+    "build:vite": "vite build",
+    "build:ele": "node script/build --env=production",
+    "build": "yarn build:vite && yarn build:ele",
     "lint": "eslint --fix",
-    "postinstall": "husky install"
+    "postinstall": "husky install",
+    "pack-win": "electron-builder --win"
   },
   "dependencies": {
+    "electron-is-dev": "^2.0.0",
     "element-plus": "^1.0.1-beta.14",
     "eventemitter3": "^4.0.7",
     "ffmpeg-static": "^4.3.0",
@@ -46,7 +53,6 @@
     "electron": "^11.1.0",
     "electron-builder": "^22.9.1",
     "electron-connect": "^0.6.3",
-    "electron-is-dev": "^1.2.0",
     "eslint": "^7.16.0",
     "husky": "^5.2.0",
     "lint-staged": "^10.5.4",
@@ -66,5 +72,27 @@
     "vite": "^2.1.5",
     "wait-on": "^5.3.0"
   },
-  "lint-staged": {}
+  "lint-staged": {},
+  "build": {
+    "appId": "cn.gajon.dimension-pocket",
+    "productName": "dimension-pocket",
+    "artifactName": "${productName}-${os}-${arch}-${version}.${ext}",
+    "electronVersion": "11.1.0",
+    "copyright": "Copyright © year ${author}",
+    "compression": "normal",
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/bin/${os}/${arch}/ffmpeg",
+      "node_modules/ffmpeg-static/index.js",
+      "node_modules/ffmpeg-static/package.json"
+    ],
+    "files": [
+      "**/*",
+      "build/**/*",
+      "!dist/*"
+    ],
+    "win": {
+      "icon": "public/icon.png"
+    }
+  },
+  "license": "MIT"
 }

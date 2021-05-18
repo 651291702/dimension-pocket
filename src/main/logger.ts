@@ -64,10 +64,10 @@ class Logger {
 
     const defaultConf: log4js.Configuration = {
       appenders: {
-        [Appenders.Console]: { type: "console", layout: { type: "file-info" } },
-        [Appenders.Default]: { type: "file", filename: genFilePath("all.log"), layout: { type: "file-info" } },
-        [Appenders.Main]: { type: "file", filename: genFilePath("main.log"), layout: { type: "file-info" } },
-        [Appenders.Render]: { type: "file", filename: genFilePath("render.log"), layout: { type: "file-info" } },
+        [Appenders.Console]: { type: "console", layout: { type: "basic" } },
+        [Appenders.Default]: { type: "file", filename: genFilePath("all.log"), layout: { type: "basic" } },
+        [Appenders.Main]: { type: "file", filename: genFilePath("main.log"), layout: { type: "basic" } },
+        [Appenders.Render]: { type: "file", filename: genFilePath("render.log"), layout: { type: "basic" } },
         [Appenders.MainError]: { type: "logLevelFilter", appender: Appenders.Main, level: Levels.ERROR },
         [Appenders.RenderError]: { type: "logLevelFilter", appender: Appenders.Render, level: levels.ERROR },
       },

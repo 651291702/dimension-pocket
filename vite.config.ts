@@ -18,6 +18,10 @@ const config: UserConfig = {
     },
   },
   plugins: [esm2cjs({ includes: ["fs", "path", "got", "stream", "util", "nedb-promises", "tunnel"] }), vue()],
+  build: {
+    outDir: "../../build",
+    emptyOutDir: true,
+  },
 }
 
 export default config
