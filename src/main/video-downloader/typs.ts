@@ -9,4 +9,5 @@ export enum TaskStatus {
   paused,
   merging,
   merged,
+  mergeFailed,
 }

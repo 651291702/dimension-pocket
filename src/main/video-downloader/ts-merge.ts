@@ -5,7 +5,7 @@ import { readFileSync, createWriteStream } from "fs"
 import Ffmpeg from "fluent-ffmpeg"
 import { createLogger } from "~/main/logger"
 
-const logger = createLogger("ts-merge")
+const logger = createLogger("main/ts-merge")
 
 class TsStream extends Readable {
   private index: number
@@ -52,7 +52,7 @@ export default class Joiner {
     this.joining = true
     const filePath = join(this.dir, `${this.name}.mp4`)
     // const outputStream = createWriteStream(filePath)
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this.ffIns
         .input(this.input)
         .videoCodec("copy")
@@ -60,6 +60,7 @@ export default class Joiner {
         .save(filePath)
         .on("error", function (...args) {
           logger.error("join ts fragement failed", ...args)
+          reject(...args)
         })
         .on("end", () => {
           this.joining = false

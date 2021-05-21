@@ -220,6 +220,7 @@ class Task {
     this.waitKey = false
     this.joiner = new Joiner(video.dir, video.name, this.segLen)
     this.tryCountSegs = Array(this.segLen).fill(0)
+    this.dir = join(video.dir, video.name)
 
     if (video.merge) {
       this.status = TaskStatus.merged
@@ -246,8 +247,6 @@ class Task {
         this.segs[i] = TaskSegStatus.idel
       }
     }
-
-    this.dir = join(video.dir, video.name)
 
     this.emitTaskInfo()
   }
@@ -276,14 +275,21 @@ class Task {
 
   async mergeFragments() {
     if (this.segLen > 0) {
-      await this.joiner.start()
-      try {
-        accessSync(this.dir, constants.F_OK)
-        rmSync(this.dir, { recursive: true, force: true })
-      } catch (e) {}
-      updateMergeFlag(this.id)
-      this.status = TaskStatus.merged
-      this.bus.emit(VideoDLerEvent.TaskStatusChanged, this.id, this.status)
+      await this.joiner
+        .start()
+        .then(() => {
+          try {
+            accessSync(this.dir, constants.F_OK)
+            rmSync(this.dir, { recursive: true, force: true })
+          } catch (e) {}
+          updateMergeFlag(this.id)
+          this.status = TaskStatus.merged
+          this.bus.emit(VideoDLerEvent.TaskStatusChanged, this.id, this.status)
+        })
+        .catch(() => {
+          this.status = TaskStatus.mergeFailed
+          this.bus.emit(VideoDLerEvent.TaskStatusChanged, this.id, this.status)
+        })
     }
   }
 

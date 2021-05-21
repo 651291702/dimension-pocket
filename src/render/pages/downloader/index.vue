@@ -106,8 +106,7 @@
           </div>
         </div>
         <el-row class="flex justify-center mt-20">
-          <el-button round>创建</el-button>
-          <el-button type="primary" round @click="downloadVideo">下载</el-button>
+          <el-button type="primary" round @click="downloadVideo">创建</el-button>
         </el-row>
       </div>
     </transition>
@@ -151,14 +150,14 @@ export default defineComponent({
     }
   },
   mounted() {
-    ;(window as any).db = DB
-    ;(window as any).k = this
     this.$bus.emit(VideoDLerEvent.RecoverTasks)
 
     this.$bus.on(VideoDLerEvent.TaskInited, (_, item: VideoTaskBrief) => {
       this.tasks.push(reactive(item))
       if (this.createPanel) {
         this.toggleCreatePanel()
+        this.taskForm.url = ""
+        this.taskForm.name = ""
       }
     })
 
@@ -210,6 +209,8 @@ export default defineComponent({
             case TaskStatus.merged:
               description = "任务完成"
               break
+            case TaskStatus.mergeFailed:
+              description = "合并失败，具体看日志"
             default:
               description = `片段 ${loadedSegs.length} / ${t.segLen}`
               break
