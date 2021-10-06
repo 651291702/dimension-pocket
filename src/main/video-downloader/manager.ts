@@ -12,7 +12,7 @@ import Joiner from "./ts-merge"
 import { TaskStatus, TaskSegStatus } from "./typs"
 import { createLogger } from "~/main/logger"
 import { createDecipheriv } from "crypto"
-import { readFileSync, accessSync, constants, rmSync } from "fs"
+import { readFileSync, accessSync, constants, rmdirSync } from "fs"
 
 const logger = createLogger("main/video-manager")
 
@@ -214,7 +214,7 @@ class Task {
     this.segLen = video.totalSegs || 0
     this.segs = []
     this.options = generateRequestOption(video)
-    this.thread = 5
+    this.thread = 10
     this.stopThread = 0
     this.encode = false
     this.waitKey = false
@@ -280,8 +280,10 @@ class Task {
         .then(() => {
           try {
             accessSync(this.dir, constants.F_OK)
-            rmSync(this.dir, { recursive: true, force: true })
-          } catch (e) {}
+            rmdirSync(this.dir, { recursive: true, })
+          } catch (e) {
+            logger.info(`Merge fragments failed `, e);
+          }
           updateMergeFlag(this.id)
           this.status = TaskStatus.merged
           this.bus.emit(VideoDLerEvent.TaskStatusChanged, this.id, this.status)

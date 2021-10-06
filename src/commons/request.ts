@@ -5,6 +5,8 @@ import * as fs from "fs"
 import { join } from "path"
 import tunnel, { ProxyOptions } from "tunnel" // @plugin-esm2cjs ignore
 
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+
 const pipeline = promisify(stream.pipeline)
 
 export interface RequestHeaders {
