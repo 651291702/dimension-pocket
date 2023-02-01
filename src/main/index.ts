@@ -46,7 +46,7 @@ function createWin(config?: BrowserWindowConstructorOptions | void): BrowserWind
       height: 700,
       webPreferences: {
         enableRemoteModule: true,
-        devTools: true,
+        devTools: false,
         /**
          * 理论上并不推荐使用nodeIntefration标志，安全操作：将操作在main线程中实现，利用通信机制
          * @see https://www.electronjs.org/docs/api/browser-window

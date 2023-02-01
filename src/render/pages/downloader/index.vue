@@ -100,10 +100,16 @@
           </div>
 
           <div class="create-panel__form-field">
+            <label>并发数</label>
+            <input type="text" v-model="taskForm.thread" placeholder="[选填]默认为20" /> 
+          </div>
+
+          <div class="create-panel__form-field">
             <label>下载至</label>
             <input type="text" spellcheck="false" v-model="taskForm.dir" class="cursor-not-allowed pr-6" disabled />
             <el-button type="text" icon="el-icon-upload2" @click="selectDirctor" />
           </div>
+          
         </div>
         <el-row class="flex justify-center mt-20">
           <el-button type="primary" round @click="downloadVideo">创建</el-button>
@@ -130,6 +136,7 @@ interface VideoTaskBrief {
   segs: TaskSegStatus[]
   status: TaskStatus
   segLen: number
+  currentThread?: number
 }
 
 interface VideoTaskForm {
@@ -139,6 +146,7 @@ interface VideoTaskForm {
   prefix: string
   headers: string
   proxy: string
+  thread:  string
 }
 
 export default defineComponent({
@@ -184,6 +192,14 @@ export default defineComponent({
         this.tasks.splice(idx, 1)
       }
     })
+
+    this.$bus.on(VideoDLerEvent.ThreadUpdate, (_, id: string, restThread: number) => {
+      for (let task of this.tasks) {
+        if (task.id === id) {
+          task.currentThread = restThread;
+        }
+      }
+    })
   },
   setup() {
     const tasks: VideoTaskBrief[] = reactive([])
@@ -195,6 +211,7 @@ export default defineComponent({
       prefix: "",
       headers: "",
       proxy: "",
+      thread: "",
     })
 
     const sortTasks = computed(() => {
@@ -213,6 +230,9 @@ export default defineComponent({
               description = "合并失败，具体看日志"
             default:
               description = `片段 ${loadedSegs.length} / ${t.segLen}`
+              if (t.currentThread) {
+                description += `  |  live并发数 ${t.currentThread} `;
+              }
               break
           }
 
@@ -260,7 +280,7 @@ export default defineComponent({
         })
     },
     downloadVideo() {
-      const { url, dir, name, headers, prefix, proxy } = this.taskForm
+      const { url, dir, name, headers, prefix, proxy, thread } = this.taskForm
 
       if (!url) {
         this.$message.error("资源链接为必填项")
@@ -302,6 +322,10 @@ export default defineComponent({
 
       if (prefix) {
         info.prefix = prefix
+      }
+
+      if (thread)  {
+        info.thread  = +thread;
       }
 
       this.$bus.emit(VideoDLerEvent.ManifestLoading, info)

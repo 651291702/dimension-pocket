@@ -24,6 +24,7 @@ export type VideoItem = {
   proxy?: ProxyOptions
   totalSegs?: number
   prefix?: string
+  thread?: number
 }
 
 export default ins

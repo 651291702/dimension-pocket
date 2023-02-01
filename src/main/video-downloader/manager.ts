@@ -59,7 +59,7 @@ export default class DownloaderManager {
           merge: false,
         })
       }
-
+      logger.info('create task', info, oriVideo);
       //  100%完成
       if (oriVideo.totalSegs && oriVideo.segs.length === oriVideo.totalSegs) {
         bus.emit(VideoDLerEvent.ManifestLoaded, oriVideo, [])
@@ -69,6 +69,7 @@ export default class DownloaderManager {
       let m3u8Text
 
       if (info.url.match(NetUrlRex)) {
+        logger.info('request m3u8 text with opt', generateRequestOption(oriVideo));
         m3u8Text = await get(info.url, generateRequestOption(oriVideo)).text()
       } else {
         m3u8Text = readFileSync(info.url, "utf8")
@@ -214,7 +215,7 @@ class Task {
     this.segLen = video.totalSegs || 0
     this.segs = []
     this.options = generateRequestOption(video)
-    this.thread = 10
+    this.thread = video.thread || 20
     this.stopThread = 0
     this.encode = false
     this.waitKey = false
@@ -309,6 +310,7 @@ class Task {
     this.bus.emit(VideoDLerEvent.TaskStatusChanged, this.id, this.status)
 
     this.stopThread = 0
+    this.bus.emit(VideoDLerEvent.ThreadUpdate, this.id, this.thread);
     for (let i = 0; i < this.thread; i++) {
       this.threadDownload()
     }
@@ -316,6 +318,8 @@ class Task {
 
   stop() {
     if (this.status !== TaskStatus.started) return
+    this.stopThread =  this.thread;
+    this.bus.emit(VideoDLerEvent.ThreadUpdate, this.id, 0);
     this.status = TaskStatus.paused
 
     this.bus.emit(VideoDLerEvent.TaskStatusChanged, this.id, this.status)
@@ -326,6 +330,7 @@ class Task {
    */
   threadUpdate() {
     this.stopThread++
+    this.bus.emit(VideoDLerEvent.ThreadUpdate, this.id, this.thread - this.stopThread);
     if (this.stopThread !== this.thread) return
 
     const loadedSegs = this.segs.filter((i) => i === TaskSegStatus.downloaded)

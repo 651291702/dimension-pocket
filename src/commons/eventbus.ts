@@ -96,4 +96,5 @@ export const VideoDLerEvent = {
   TaskStatusChanged: "TaskStatusChanged",
   TaskDeleting: "TaskDeleting",
   TaskDeleted: "TaskDeleted",
+  ThreadUpdate: "ThreadUpdate",
 }
