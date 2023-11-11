@@ -53,6 +53,7 @@ function createWin(config?: BrowserWindowConstructorOptions | void): BrowserWind
          * 主要考虑该项目仅为个人用途且方便文件操作，故打开开关
          */
         nodeIntegration: true,
+        contextIsolation: false,
       },
     } as BrowserWindowConstructorOptions,
     config || {}

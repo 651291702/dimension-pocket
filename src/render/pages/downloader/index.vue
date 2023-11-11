@@ -93,12 +93,12 @@
               v-model="taskForm.headers"
             ></textarea>
           </div>
-
+<!--
           <div class="create-panel__form-field">
             <label>代理</label>
             <input type="text" v-model="taskForm.proxy" placeholder="[选填]仅支持HTTP协议，格式ip:port" />
           </div>
-
+-->
           <div class="create-panel__form-field">
             <label>并发数</label>
             <input type="text" v-model="taskForm.thread" placeholder="[选填]默认为20" /> 
@@ -120,15 +120,11 @@
 </template>
 
 <script lang="ts">
-import { Dialog } from "electron"
 import { defineComponent, reactive, ref, computed } from "vue"
-import { getEleModule } from "~/commons/util"
 import { VideoDLerEvent } from "~/commons/eventbus"
 import { VideoItem } from "~/commons/database/video-downloader"
 import { videoDler as DB } from "~/commons/database"
 import { TaskStatus, TaskSegStatus } from "~/main/video-downloader/typs"
-
-const dialog: Dialog = getEleModule("dialog")
 
 interface VideoTaskBrief {
   id: string
@@ -200,6 +196,14 @@ export default defineComponent({
         }
       }
     })
+
+    this.$bus.on(VideoDLerEvent.OpenPathSelectorEnd, (_, path: string, isDir: boolean) => {
+      if (isDir) {
+        this.taskForm.dir = path;
+      } else {
+        this.taskForm.url = path;
+      }
+    })
   },
   setup() {
     const tasks: VideoTaskBrief[] = reactive([])
@@ -210,7 +214,7 @@ export default defineComponent({
       dir: "",
       prefix: "",
       headers: "",
-      proxy: "",
+      proxy: "127.0.0.1:10809",
       thread: "",
     })
 
@@ -260,24 +264,10 @@ export default defineComponent({
       this.$bus.emit(VideoDLerEvent.TaskStoping, id)
     },
     selectFile() {
-      dialog
-        .showOpenDialog({
-          properties: ["openFile"],
-        })
-        .then((info) => {
-          if (!info.filePaths || info.filePaths.length === 0) return
-          this.taskForm.url = info.filePaths[0]
-        })
+      this.$bus.emit(VideoDLerEvent.OpenPathSelector, false);
     },
     selectDirctor() {
-      dialog
-        .showOpenDialog({
-          properties: ["openDirectory"],
-        })
-        .then((info) => {
-          if (!info.filePaths || info.filePaths.length === 0) return
-          this.taskForm.dir = info.filePaths[0]
-        })
+      this.$bus.emit(VideoDLerEvent.OpenPathSelector, true);
     },
     downloadVideo() {
       const { url, dir, name, headers, prefix, proxy, thread } = this.taskForm

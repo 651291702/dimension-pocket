@@ -97,4 +97,6 @@ export const VideoDLerEvent = {
   TaskDeleting: "TaskDeleting",
   TaskDeleted: "TaskDeleted",
   ThreadUpdate: "ThreadUpdate",
+  OpenPathSelector: "OpenPathSelector",
+  OpenPathSelectorEnd: "OpenPathSelectorEnd",
 }

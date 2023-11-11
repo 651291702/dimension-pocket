@@ -13,6 +13,8 @@ import { TaskStatus, TaskSegStatus } from "./typs"
 import { createLogger } from "~/main/logger"
 import { createDecipheriv } from "crypto"
 import { readFileSync, accessSync, constants, rmdirSync } from "fs"
+import { getEleModule } from "~/commons/util"
+import { Dialog } from "electron"
 
 const logger = createLogger("main/video-manager")
 
@@ -144,6 +146,18 @@ export default class DownloaderManager {
       await remove(_id)
       this.tasks.splice(idx, 1)
       this.bus.emit(VideoDLerEvent.TaskDeleted, _id)
+    })
+
+    bus.on(VideoDLerEvent.OpenPathSelector, (_, isDir) => {
+      const dialog: Dialog = getEleModule('dialog');
+      dialog
+        .showOpenDialog({
+          properties: [ isDir ? "openDirectory" : "openFile"],
+        })
+        .then((info) => {
+          if (!info.filePaths || info.filePaths.length === 0) return
+          this.bus.emit(VideoDLerEvent.OpenPathSelectorEnd,  info.filePaths[0], isDir);
+        })
     })
   }
 }
