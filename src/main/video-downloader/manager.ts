@@ -14,7 +14,7 @@ import { createLogger } from "~/main/logger"
 import { createDecipheriv } from "crypto"
 import { readFileSync, accessSync, constants, rmdirSync } from "fs"
 import { getEleModule } from "~/commons/util"
-import { Dialog } from "electron"
+import { Dialog, clipboard } from "electron"
 
 const logger = createLogger("main/video-manager")
 
@@ -41,6 +41,8 @@ function generateRequestOption(video: VideoItem) {
     generateHeaders(opt, video.headers)
   }
 
+  (opt as any).timeout = 30 * 1000
+
   return opt
 }
 
@@ -61,7 +63,7 @@ export default class DownloaderManager {
           merge: false,
         })
       }
-      logger.info('create task', info, oriVideo);
+      logger.info("create task", info, oriVideo)
       //  100%完成
       if (oriVideo.totalSegs && oriVideo.segs.length === oriVideo.totalSegs) {
         bus.emit(VideoDLerEvent.ManifestLoaded, oriVideo, [])
@@ -71,7 +73,7 @@ export default class DownloaderManager {
       let m3u8Text
 
       if (info.url.match(NetUrlRex)) {
-        logger.info('request m3u8 text with opt', generateRequestOption(oriVideo));
+        logger.info("request m3u8 text with opt", generateRequestOption(oriVideo))
         m3u8Text = await get(info.url, generateRequestOption(oriVideo)).text()
       } else {
         m3u8Text = readFileSync(info.url, "utf8")
@@ -149,15 +151,19 @@ export default class DownloaderManager {
     })
 
     bus.on(VideoDLerEvent.OpenPathSelector, (_, isDir) => {
-      const dialog: Dialog = getEleModule('dialog');
+      const dialog: Dialog = getEleModule("dialog")
       dialog
         .showOpenDialog({
           properties: [ isDir ? "openDirectory" : "openFile"],
         })
         .then((info) => {
           if (!info.filePaths || info.filePaths.length === 0) return
-          this.bus.emit(VideoDLerEvent.OpenPathSelectorEnd,  info.filePaths[0], isDir);
+          this.bus.emit(VideoDLerEvent.OpenPathSelectorEnd,  info.filePaths[0], isDir)
         })
+    })
+
+    bus.on(VideoDLerEvent.GetClipboardData, (_) => {
+      this.bus.emit(VideoDLerEvent.GetClipboardDataCallback, clipboard.readText())
     })
   }
 }
@@ -297,7 +303,7 @@ class Task {
             accessSync(this.dir, constants.F_OK)
             rmdirSync(this.dir, { recursive: true, })
           } catch (e) {
-            logger.info(`Merge fragments failed `, e);
+            logger.info("Merge fragments failed ", e)
           }
           updateMergeFlag(this.id)
           this.status = TaskStatus.merged
@@ -318,13 +324,19 @@ class Task {
       return
     }
 
+    this.tryCountSegs = Array(this.segLen).fill(0)
+    this.segs.forEach(seg => {
+      if (seg == TaskSegStatus.downloading) {
+        seg = TaskSegStatus.idel
+      }
+    })
     this.status = TaskStatus.started
     createDir(this.dir)
 
     this.bus.emit(VideoDLerEvent.TaskStatusChanged, this.id, this.status)
 
     this.stopThread = 0
-    this.bus.emit(VideoDLerEvent.ThreadUpdate, this.id, this.thread);
+    this.bus.emit(VideoDLerEvent.ThreadUpdate, this.id, this.thread)
     for (let i = 0; i < this.thread; i++) {
       this.threadDownload()
     }
@@ -332,8 +344,8 @@ class Task {
 
   stop() {
     if (this.status !== TaskStatus.started) return
-    this.stopThread =  this.thread;
-    this.bus.emit(VideoDLerEvent.ThreadUpdate, this.id, 0);
+    this.stopThread =  this.thread
+    this.bus.emit(VideoDLerEvent.ThreadUpdate, this.id, 0)
     this.status = TaskStatus.paused
 
     this.bus.emit(VideoDLerEvent.TaskStatusChanged, this.id, this.status)
@@ -344,7 +356,7 @@ class Task {
    */
   threadUpdate() {
     this.stopThread++
-    this.bus.emit(VideoDLerEvent.ThreadUpdate, this.id, this.thread - this.stopThread);
+    this.bus.emit(VideoDLerEvent.ThreadUpdate, this.id, this.thread - this.stopThread)
     if (this.stopThread !== this.thread) return
 
     const loadedSegs = this.segs.filter((i) => i === TaskSegStatus.downloaded)
@@ -376,22 +388,23 @@ class Task {
     this.segs[idx] = TaskSegStatus.downloading
     this.bus.emit(VideoDLerEvent.TaskUpdated, this.id, this.segs)
 
-    let error = false
+    let error = null
     await this.downloadSeg(idx).catch((err) => {
-      logger.error(`download ${this.video.name} with index ${idx} failed`)
-      logger.error(err)
+      error = err
       this.tryCountSegs[idx]++
       this.segs[idx] = TaskSegStatus.idel
-      error = true
     })
-
     if (error) {
+      logger.error(`download ${this.video.name} with index ${idx} failed, tryCount ${this.tryCountSegs[idx]}`)
+      logger.error(error)
+      this.segs[idx] = TaskSegStatus.idel
       if (this.tryCountSegs[idx] > DefaultTryCount) {
         this.threadUpdate()
       } else {
         this.threadDownload(idx)
       }
     } else {
+      logger.info(`download ${this.video.name} with index ${idx} success`)
       this.segs[idx] = TaskSegStatus.downloaded
       this.bus.emit(VideoDLerEvent.TaskUpdated, this.id, this.segs)
 

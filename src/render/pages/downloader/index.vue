@@ -61,7 +61,7 @@
             class="text-2xl ml-8 absolute left-0"
             @click="toggleCreatePanel"
           />
-          <div class="text-center text-lg">新建下载任务</div>
+          <div class="text-center text-lg select-none cursor-pointer" @dblclick="checkClipboard">新建下载任务</div>
         </div>
         <div class="create-panel__form">
           <div class="create-panel__form-field">
@@ -93,17 +93,17 @@
               v-model="taskForm.headers"
             ></textarea>
           </div>
-<!--
           <div class="create-panel__form-field">
             <label>代理</label>
             <input type="text" v-model="taskForm.proxy" placeholder="[选填]仅支持HTTP协议，格式ip:port" />
           </div>
--->
+
+<!--
           <div class="create-panel__form-field">
             <label>并发数</label>
             <input type="text" v-model="taskForm.thread" placeholder="[选填]默认为20" /> 
           </div>
-
+-->
           <div class="create-panel__form-field">
             <label>下载至</label>
             <input type="text" spellcheck="false" v-model="taskForm.dir" class="cursor-not-allowed pr-6" disabled />
@@ -204,6 +204,28 @@ export default defineComponent({
         this.taskForm.url = path;
       }
     })
+
+    this.$bus.on(VideoDLerEvent.GetClipboardDataCallback, (_, data: string) => {
+      const arr: string[] = data.split('\n').map(item => item.replace(/\r|\n/g, ''))
+      arr.forEach( item => {
+        const match = item.match(/([\s\S]*?):([\s\S]*)$/)
+        if (!match) return;
+        const key = match[1].trim();
+        const value = match[2].trim();
+        console.log('gajonchen', key, value)
+        if (!value) return;
+        switch (key) {
+          case 'url':
+            this.taskForm.url = value;
+            break;
+          case 'name':
+            this.taskForm.name = value;
+            break;
+          case 'referer':
+            this.taskForm.headers = `referer:${value}`;
+        }
+      })
+    })
   },
   setup() {
     const tasks: VideoTaskBrief[] = reactive([])
@@ -214,8 +236,8 @@ export default defineComponent({
       dir: "",
       prefix: "",
       headers: "",
-      proxy: "127.0.0.1:10809",
-      thread: "",
+      proxy: "",
+      thread: "40",
     })
 
     const sortTasks = computed(() => {
@@ -288,7 +310,12 @@ export default defineComponent({
       }
 
       if (proxy) {
-        let tProxy = proxy.trim().split(":")
+        let tProxy; 
+        if (proxy.includes(':')) {
+          tProxy = proxy.trim().split(":")
+        } else {
+          tProxy = ['127.0.0.1', proxy.trim()]
+        }
         if (tProxy.length < 2) {
           this.$message.error("代理格式错误")
           return
@@ -324,6 +351,9 @@ export default defineComponent({
     deleteTask(id: string) {
       this.$bus.emit(VideoDLerEvent.TaskDeleting, id)
     },
+    checkClipboard() {
+      this.$bus.emit(VideoDLerEvent.GetClipboardData)
+    }
   },
 })
 </script>

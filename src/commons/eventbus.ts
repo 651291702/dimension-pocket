@@ -99,4 +99,6 @@ export const VideoDLerEvent = {
   ThreadUpdate: "ThreadUpdate",
   OpenPathSelector: "OpenPathSelector",
   OpenPathSelectorEnd: "OpenPathSelectorEnd",
+  GetClipboardData: "GetClipboardData",
+  GetClipboardDataCallback: "GetClipboardDataCallback",
 }

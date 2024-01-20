@@ -31,7 +31,7 @@ if (argv.watch) {
       })
       watcher.on("event", (ev) => {
         if (ev.code === "END") {
-          electron.electronState === "init" ? electron.start() : electron.restart()
+          electron.electronState === "init" ? electron.start() : null /* electron.restart() */
         }
 
         if (ev.code === "ERROR") {
