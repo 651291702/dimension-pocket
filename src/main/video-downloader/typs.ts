@@ -5,6 +5,7 @@ export enum TaskSegStatus {
 }
 
 export enum TaskStatus {
+  initing,
   started,
   paused,
   merging,

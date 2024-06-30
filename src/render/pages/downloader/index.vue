@@ -9,7 +9,7 @@
                 <span>{{ item.filename }}</span>
               </div>
               <div class="task-item__progress">
-                <div>{{ item.description }}</div>
+                <div :class="{ 'desc_error': item.log }" @click="item.log && $message.error(item.log)">{{ item.description }}</div>
                 <el-progress
                   :text-inside="true"
                   :stroke-width="20"
@@ -18,7 +18,7 @@
                 ></el-progress>
               </div>
               <div class="task-item__action">
-                <template v-if="item.perc < 100">
+                <template v-if="item.perc < 100 && item.status !== TaskStatus.initing">
                   <lucky-icon
                     v-if="item.status === TaskStatus.paused"
                     :hover="true"
@@ -133,6 +133,7 @@ interface VideoTaskBrief {
   status: TaskStatus
   segLen: number
   currentThread?: number
+  logs: string[]
 }
 
 interface VideoTaskForm {
@@ -156,8 +157,12 @@ export default defineComponent({
   mounted() {
     this.$bus.emit(VideoDLerEvent.RecoverTasks)
 
+    this.$bus.on(VideoDLerEvent.TaskIniting, (_, item: VideoTaskBrief) => {
+      this.pushTask(item);
+    });
+
     this.$bus.on(VideoDLerEvent.TaskInited, (_, item: VideoTaskBrief) => {
-      this.tasks.push(reactive(item))
+      this.pushTask(item);
       if (this.createPanel) {
         this.toggleCreatePanel()
         this.taskForm.url = ""
@@ -177,7 +182,16 @@ export default defineComponent({
     this.$bus.on(VideoDLerEvent.TaskStatusChanged, (_, id: string, status: TaskStatus) => {
       for (let task of this.tasks) {
         if (task.id === id) {
+          const prevStatus = task.status
+          const completeStatus = [TaskStatus.merged, TaskStatus.mergeFailed]
           task.status = status
+          if (!completeStatus.includes(prevStatus) && completeStatus.includes(status)) {
+            const readyTask = this.tasks.find(t => t.status == TaskStatus.paused);
+            if (readyTask) {
+              this.$bus.emit(VideoDLerEvent.TaskStarting, readyTask.id);
+            }
+          }
+          break;
         }
       }
     })
@@ -202,6 +216,16 @@ export default defineComponent({
         this.taskForm.dir = path;
       } else {
         this.taskForm.url = path;
+      }
+    })
+
+    this.$bus.on(VideoDLerEvent.Error, (_, id: string, error: Record<string, string>) => {
+      const task = this.tasks.find(t => t.id == id);
+      const log = Object.keys(error).map(k => `${k}=${error[k]}`).join('|')
+      if (task) {
+        task.logs.push(log)
+      } else {
+        this.$message.error(log)
       }
     })
 
@@ -246,6 +270,9 @@ export default defineComponent({
           let loadedSegs = t.segs.filter((i) => i === TaskSegStatus.downloaded)
           let description
           switch (t.status) {
+            case TaskStatus.initing:
+              description = '初始化...'
+              break
             case TaskStatus.merging:
               description = "合并中..."
               break
@@ -268,6 +295,7 @@ export default defineComponent({
             status: t.status,
             perc: +((loadedSegs.length * 100) / t.segLen).toFixed(2),
             description: description,
+            log: t.logs.join('\n'),
           }
         })
         .sort((left, right) => left.perc - right.perc)
@@ -276,6 +304,15 @@ export default defineComponent({
     return { tasks, taskForm, sortTasks }
   },
   methods: {
+    pushTask(task: VideoTaskBrief) {
+      task.logs = task.logs || []
+      const existIdx = this.tasks.findIndex(t => t.id == task.id);
+      if (existIdx == -1) {
+        this.tasks.push(reactive(task));
+      } else {
+        this.tasks.splice(existIdx, 1, reactive(task));
+      }
+    },
     toggleCreatePanel() {
       this.createPanel = !this.createPanel
     },
@@ -364,6 +401,7 @@ export default defineComponent({
 .main {
   width: 100%;
   height: 100%;
+  overflow-y: auto;
 }
 .task-item {
   display: flex;
@@ -390,6 +428,9 @@ export default defineComponent({
     margin-left: 20px;
     margin-right: 20px;
 
+    .desc_error {
+      color: red;
+    }
     @include vertical-middle;
   }
 

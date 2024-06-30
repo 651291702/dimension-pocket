@@ -54,7 +54,7 @@ export default class DownloaderManager {
     this.bus = bus
     this.tasks = []
     this.registed = false
-    bus.on(VideoDLerEvent.ManifestLoading, async function (_, info: VideoItem) {
+    bus.on(VideoDLerEvent.ManifestLoading, async function (_, info: VideoItem, local?: boolean) {
       let oriVideo = await findByUrl(info.url)
       if (!oriVideo) {
         oriVideo = await create({
@@ -62,7 +62,16 @@ export default class DownloaderManager {
           segs: [],
           merge: false,
         })
+      } else if (oriVideo && local) {
+        bus.emit(VideoDLerEvent.TaskIniting, {
+          id: oriVideo._id,
+          filename: oriVideo.name,
+          segLen: oriVideo.totalSegs || 9999,
+          segs: oriVideo.segs,
+          status: TaskStatus.initing,
+        });
       }
+      
       logger.info("create task", info, oriVideo)
       //  100%完成
       if (oriVideo.totalSegs && oriVideo.segs.length === oriVideo.totalSegs) {
@@ -74,7 +83,24 @@ export default class DownloaderManager {
 
       if (info.url.match(NetUrlRex)) {
         logger.info("request m3u8 text with opt", generateRequestOption(oriVideo))
-        m3u8Text = await get(info.url, generateRequestOption(oriVideo)).text()
+        m3u8Text = await get(info.url, generateRequestOption(oriVideo)).text().catch(err => {
+          const error = {
+            code: err.code,
+            ...['statusCode', 'url', 'timings', 'retryCount',].reduce((prev: Record<string, string>, current) => {
+              if (err.response && err.response[current]) {
+                if (current == 'timings') {
+                  prev[current] = Object.keys(err.response[current]['phases']).map(k => `${k}:${err.response[current]['phases'][k]}`).join('&')
+                } else {
+                  prev[current] = err.response[current]
+                }
+              }
+              return prev;
+            }, {}),
+          };
+          bus.emit(VideoDLerEvent.Error, oriVideo._id, error)
+          logger.error(`Video ${oriVideo.name} m3u8 load failed ${JSON.stringify(error)}`)
+        })
+        if (!m3u8Text) return;
       } else {
         m3u8Text = readFileSync(info.url, "utf8")
       }
@@ -130,7 +156,7 @@ export default class DownloaderManager {
       if (!this.registed) {
         const videos = await findAll()
         videos.forEach((video) => {
-          this.bus.emit(VideoDLerEvent.ManifestLoading, video)
+          this.bus.emit(VideoDLerEvent.ManifestLoading, video, true)
         })
         this.registed = true
       } else {
@@ -142,7 +168,11 @@ export default class DownloaderManager {
 
     bus.on(VideoDLerEvent.TaskDeleting, async (_, _id: string) => {
       const idx = this.tasks.findIndex((task) => task.id === _id)
-      if (idx === -1) return
+      if (idx === -1) {
+        remove(_id)
+        this.bus.emit(VideoDLerEvent.TaskDeleted, _id)
+        return
+      }
       const task = this.tasks[idx]
       task.destory()
       await remove(_id)

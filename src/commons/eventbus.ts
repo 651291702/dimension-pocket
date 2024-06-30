@@ -89,6 +89,7 @@ export const VideoDLerEvent = {
   ManifestLoading: "ManifestLoading",
   ManifestLoaded: "ManifestLoaded",
   RecoverTasks: "RecoverTasks",
+  TaskIniting: "TaskIniting",
   TaskInited: "TaskInited",
   TaskStarting: "TaskStarting",
   TaskUpdated: "TaskUpdated",
@@ -101,4 +102,5 @@ export const VideoDLerEvent = {
   OpenPathSelectorEnd: "OpenPathSelectorEnd",
   GetClipboardData: "GetClipboardData",
   GetClipboardDataCallback: "GetClipboardDataCallback",
+  Error: "Error",
 }
