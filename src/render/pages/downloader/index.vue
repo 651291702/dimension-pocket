@@ -10,6 +10,12 @@
               </div>
               <div class="task-item__progress">
                 <div :class="{ 'desc_error': item.log }" @click="item.log && $message.error(item.log)">{{ item.description }}</div>
+                <el-progress
+                  :text-inside="true"
+                  :stroke-width="20"
+                  :percentage="item.perc"
+                  :status="(item.perc >= 100 && 'success') || ''"
+                ></el-progress>
               </div>
               <div class="task-item__action">
                 <template v-if="item.perc < 100 && item.status !== TaskStatus.initing">
@@ -254,7 +260,7 @@ export default defineComponent({
       dir: "",
       prefix: "",
       headers: "",
-      proxy: "",
+      proxy: "7890",
       thread: "40",
     })
 
