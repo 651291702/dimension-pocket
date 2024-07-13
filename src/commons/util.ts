@@ -54,3 +54,19 @@ export function createDir(dir: string) {
     mkdirSync(dir, { recursive: true })
   }
 }
+
+export function handleReqeustError(err: any) {
+  return {
+    code: err.code,
+    ...['statusCode', 'url', 'timings', 'retryCount',].reduce((prev: Record<string, string>, current) => {
+      if (err.response && err.response[current]) {
+        if (current == 'timings') {
+          prev[current] = Object.keys(err.response[current]['phases']).map(k => `${k}:${err.response[current]['phases'][k]}`).join('&')
+        } else {
+          prev[current] = err.response[current]
+        }
+      }
+      return prev;
+    }, {}),
+  };
+}

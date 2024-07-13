@@ -6,6 +6,7 @@ import { app, BrowserWindow, BrowserWindowConstructorOptions, Menu } from "elect
 import { createLogger } from "~/main/logger"
 import EventBus from "~/commons/eventbus"
 import VideoDlerManager from "./video-downloader/manager"
+import MusicDlerManager from "./music-downloader/manager"
 const is_dev = require("electron-is-dev")
 
 let win: BrowserWindow
@@ -80,6 +81,7 @@ function main(): void {
     .then(() => {
       bus = new EventBus(win.webContents)
       new VideoDlerManager(bus)
+      new MusicDlerManager(bus)
     })
 }
 

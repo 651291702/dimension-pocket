@@ -104,3 +104,20 @@ export const VideoDLerEvent = {
   GetClipboardDataCallback: "GetClipboardDataCallback",
   Error: "Error",
 }
+
+
+export const MusicDlerEvent = {
+  RecoverTasks: "M-RecoverTasks",
+  AudioTaskCreate: "M-AudioTaskCreate", 
+  TaskIniting: "M-TaskIniting",
+  TaskInited: "M-TaskInited",
+  TaskStarting: "M-TaskStarting",
+  TaskUpdated: "M-TaskUpdated",
+  TaskStoping: "M-TaskStoping",
+  TaskStatusChanged: "M-TaskStatusChanged",
+  TaskDeleting: "M-TaskDeleting",
+  TaskDeleted: "M-TaskDeleted",
+  OpenPathSelector: "M-OpenPathSelector",
+  OpenPathSelectorEnd: "M-OpenPathSelectorEnd",
+  Error: "M-Error",
+}

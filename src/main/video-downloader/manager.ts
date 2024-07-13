@@ -7,7 +7,7 @@ import { Parser } from "m3u8-parser"
 import { VideoItem } from "~/commons/database/video-downloader"
 import { findByUrl, create, updateSegLen, updateSeg, findAll, remove, updateMergeFlag } from "./model"
 import { join } from "path"
-import { createDir } from "~/commons/util"
+import { createDir, handleReqeustError } from "~/commons/util"
 import Joiner from "./ts-merge"
 import { TaskStatus, TaskSegStatus } from "./typs"
 import { createLogger } from "~/main/logger"
@@ -84,19 +84,7 @@ export default class DownloaderManager {
       if (info.url.match(NetUrlRex)) {
         logger.info("request m3u8 text with opt", generateRequestOption(oriVideo))
         m3u8Text = await get(info.url, generateRequestOption(oriVideo)).text().catch(err => {
-          const error = {
-            code: err.code,
-            ...['statusCode', 'url', 'timings', 'retryCount',].reduce((prev: Record<string, string>, current) => {
-              if (err.response && err.response[current]) {
-                if (current == 'timings') {
-                  prev[current] = Object.keys(err.response[current]['phases']).map(k => `${k}:${err.response[current]['phases'][k]}`).join('&')
-                } else {
-                  prev[current] = err.response[current]
-                }
-              }
-              return prev;
-            }, {}),
-          };
+          const error = handleReqeustError(err);
           bus.emit(VideoDLerEvent.Error, oriVideo._id, error)
           logger.error(`Video ${oriVideo.name} m3u8 load failed ${JSON.stringify(error)}`)
         })

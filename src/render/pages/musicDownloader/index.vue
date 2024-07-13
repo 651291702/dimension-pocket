@@ -6,30 +6,20 @@
           <div class="task-list">
             <div class="task-item" v-for="item in sortTasks" :key="item.id">
               <div class="task-item__name">
-                <span>{{ item.filename }}</span>
+                <span>{{ item.filename }}-{{ item.artist }}</span>
               </div>
               <div class="task-item__progress">
                 <div :class="{ 'desc_error': item.log }" @click="item.log && $message.error(item.log)">{{ item.description }}</div>
               </div>
               <div class="task-item__action">
-                <template v-if="item.perc < 100 && item.status !== TaskStatus.initing">
-                  <lucky-icon
-                    v-if="item.status === TaskStatus.paused"
-                    :hover="true"
-                    :size="20"
-                    icon="play"
-                    class="task-item__action-btn"
-                    @click="startDownload(item.id)"
-                  />
-                  <lucky-icon
-                    v-else-if="item.status === TaskStatus.started"
-                    icon="pause"
-                    :hover="true"
-                    :size="20"
-                    class="task-item__action-btn"
-                    @click="stopDownload(item.id)"
-                  />
-                </template>
+                <lucky-icon
+                  v-if="item.status === TaskStatus.paused"
+                  :hover="true"
+                  :size="20"
+                  icon="play"
+                  class="task-item__action-btn"
+                  @click="startDownload(item.id)"
+                />
                 <lucky-icon
                   icon="delete"
                   :size="20"
@@ -55,36 +45,31 @@
             class="text-2xl ml-8 absolute left-0"
             @click="toggleCreatePanel"
           />
-          <div class="text-center text-lg select-none cursor-pointer" @dblclick="checkClipboard">新建下载任务</div>
+          <div class="text-center text-lg select-none cursor-pointer">新建下载任务</div>
         </div>
         <div class="create-panel__form">
           <div class="create-panel__form-field">
-            <label>视频URI</label>
-            <input type="text" spellcheck="false" v-model="taskForm.url" placeholder="支持本地/网络资源" class="pr-6" />
-            <el-button type="text" icon="el-icon-upload2" @click="selectFile" />
-          </div>
-          <div class="create-panel__form-field">
-            <label>文件名</label>
-            <input type="text" spellcheck="false" v-model="taskForm.name" placeholder="[选填]默认使用时间戳" />
+            <label>音乐id</label>
+            <input type="text" spellcheck="false" v-model="taskForm.musicId"  class="pr-6" />
           </div>
 
           <div class="create-panel__form-field">
-            <label>M3U8前缀</label>
-            <input
-              type="text"
-              spellcheck="false"
-              v-model="taskForm.prefix"
-              placeholder="[选填]M3U8 Segmeng URI前缀, e.g. http://xxx.com/a120"
-            />
+            <input type="radio" id="wy163" name="musictype" :value="MusicType.WY163" v-model="taskForm.type" checked/>
+            <label for="wy163">网易云音乐</label>
+          
+            <input type="radio" id="qqmusic" name="musictype" :value="MusicType.QQMusic" v-model="taskForm.type" disabled/>
+            <label for="qqmusic">QQ音乐</label>
           </div>
 
+         
+
           <div class="create-panel__form-field">
-            <label>请求Header</label>
+            <label>网易云Cookie</label>
             <textarea
               rows="5"
               spellcheck="false"
-              placeholder="[选填]一对header一行，格式：key:value&#10;refer: http://baidu.com"
-              v-model="taskForm.headers"
+              placeholder="[必填]"
+              v-model="taskForm.wymusicCookie"
             ></textarea>
           </div>
           <div class="create-panel__form-field">
@@ -92,18 +77,11 @@
             <input type="text" v-model="taskForm.proxy" placeholder="[选填]仅支持HTTP协议，格式ip:port" />
           </div>
 
-<!--
-          <div class="create-panel__form-field">
-            <label>并发数</label>
-            <input type="text" v-model="taskForm.thread" placeholder="[选填]默认为20" /> 
-          </div>
--->
           <div class="create-panel__form-field">
             <label>下载至</label>
             <input type="text" spellcheck="false" v-model="taskForm.dir" class="cursor-not-allowed pr-6" disabled />
             <el-button type="text" icon="el-icon-upload2" @click="selectDirctor" />
           </div>
-          
         </div>
         <el-row class="flex justify-center mt-20">
           <el-button type="primary" round @click="downloadVideo">创建</el-button>
@@ -115,29 +93,28 @@
 
 <script lang="ts">
 import { defineComponent, reactive, ref, computed } from "vue"
-import { VideoDLerEvent } from "~/commons/eventbus"
-import { VideoItem } from "~/commons/database/video-downloader"
-import { videoDler as DB } from "~/commons/database"
-import { TaskStatus, TaskSegStatus } from "~/main/video-downloader/typs"
+import { MusicDlerEvent } from "~/commons/eventbus"
+import { MusicItem } from "~/commons/database/music-downloader"
+import { musicDler as DB } from "~/commons/database"
+import { TaskStatus, MusicType } from "~/main/music-downloader/typs"
 
-interface VideoTaskBrief {
+interface MusicTaskBrief {
   id: string
   filename: string
-  segs: TaskSegStatus[]
+  artist: string
   status: TaskStatus
-  segLen: number
-  currentThread?: number
+  hasAudio: boolean
+  hasAlbum: boolean
   logs: string[]
 }
 
-interface VideoTaskForm {
-  url: string
-  name: string
+interface MusicTaskForm {
+  musicId: string
+  type: MusicType,
   dir: string
-  prefix: string
-  headers: string
+  qqmusicCookie: string
+  wymusicCookie: string
   proxy: string
-  thread:  string
 }
 
 export default defineComponent({
@@ -146,34 +123,29 @@ export default defineComponent({
       tab: "list",
       createPanel: false,
       TaskStatus,
+      MusicType,
     }
   },
   mounted() {
-    this.$bus.emit(VideoDLerEvent.RecoverTasks)
+    this.$bus.emit(MusicDlerEvent.RecoverTasks)
 
-    this.$bus.on(VideoDLerEvent.TaskIniting, (_, item: VideoTaskBrief) => {
+    this.$bus.on(MusicDlerEvent.TaskIniting, (_, item: MusicTaskBrief) => {
       this.pushTask(item);
     });
 
-    this.$bus.on(VideoDLerEvent.TaskInited, (_, item: VideoTaskBrief) => {
+    this.$bus.on(MusicDlerEvent.TaskInited, (_, item: MusicTaskBrief) => {
       this.pushTask(item);
       if (this.createPanel) {
         this.toggleCreatePanel()
-        this.taskForm.url = ""
-        this.taskForm.name = ""
+        this.taskForm.musicId = ""
       }
     })
 
-    this.$bus.on(VideoDLerEvent.TaskUpdated, (_, id: string, segs: TaskSegStatus[]) => {
-      for (let task of this.tasks) {
-        if (task.id === id) {
-          task.segs = segs
-          return
-        }
-      }
+    this.$bus.on(MusicDlerEvent.TaskUpdated, (_, item: MusicTaskBrief) => {
+      this.pushTask(item);
     })
 
-    this.$bus.on(VideoDLerEvent.TaskStatusChanged, (_, id: string, status: TaskStatus) => {
+    this.$bus.on(MusicDlerEvent.TaskStatusChanged, (_, id: string, status: TaskStatus) => {
       for (let task of this.tasks) {
         if (task.id === id) {
           const prevStatus = task.status
@@ -182,7 +154,7 @@ export default defineComponent({
           if (!completeStatus.includes(prevStatus) && completeStatus.includes(status)) {
             const readyTask = this.tasks.find(t => t.status == TaskStatus.paused);
             if (readyTask) {
-              this.$bus.emit(VideoDLerEvent.TaskStarting, readyTask.id);
+              this.$bus.emit(MusicDlerEvent.TaskStarting, readyTask.id);
             }
           }
           break;
@@ -190,30 +162,22 @@ export default defineComponent({
       }
     })
 
-    this.$bus.on(VideoDLerEvent.TaskDeleted, (_, id: string) => {
+    this.$bus.on(MusicDlerEvent.TaskDeleted, (_, id: string) => {
       const idx = this.tasks.findIndex((i) => i.id === id)
       if (idx !== -1) {
         this.tasks.splice(idx, 1)
       }
     })
 
-    this.$bus.on(VideoDLerEvent.ThreadUpdate, (_, id: string, restThread: number) => {
-      for (let task of this.tasks) {
-        if (task.id === id) {
-          task.currentThread = restThread;
-        }
-      }
-    })
-
-    this.$bus.on(VideoDLerEvent.OpenPathSelectorEnd, (_, path: string, isDir: boolean) => {
+    this.$bus.on(MusicDlerEvent.OpenPathSelectorEnd, (_, path: string, isDir: boolean) => {
       if (isDir) {
         this.taskForm.dir = path;
       } else {
-        this.taskForm.url = path;
+        // this.taskForm.url = path;
       }
     })
 
-    this.$bus.on(VideoDLerEvent.Error, (_, id: string, error: Record<string, string>) => {
+    this.$bus.on(MusicDlerEvent.Error, (_, id: string, error: Record<string, string>) => {
       const task = this.tasks.find(t => t.id == id);
       const log = Object.keys(error).map(k => `${k}=${error[k]}`).join('|')
       if (task) {
@@ -223,63 +187,57 @@ export default defineComponent({
       }
     })
 
-    this.$bus.on(VideoDLerEvent.GetClipboardDataCallback, (_, data: string) => {
-      const arr: string[] = data.split('\n').map(item => item.replace(/\r|\n/g, ''))
-      arr.forEach( item => {
-        const match = item.match(/([\s\S]*?):([\s\S]*)$/)
-        if (!match) return;
-        const key = match[1].trim();
-        const value = match[2].trim();
-        console.log('gajonchen', key, value)
-        if (!value) return;
-        switch (key) {
-          case 'url':
-            this.taskForm.url = value;
-            break;
-          case 'name':
-            this.taskForm.name = value;
-            break;
-          case 'referer':
-            this.taskForm.headers = `referer:${value}`;
-        }
-      })
-    })
+    // this.$bus.on(MusicDlerEvent.GetClipboardDataCallback, (_, data: string) => {
+    //   const arr: string[] = data.split('\n').map(item => item.replace(/\r|\n/g, ''))
+    //   arr.forEach( item => {
+    //     const match = item.match(/([\s\S]*?):([\s\S]*)$/)
+    //     if (!match) return;
+    //     const key = match[1].trim();
+    //     const value = match[2].trim();
+    //     console.log('gajonchen', key, value)
+    //     if (!value) return;
+    //     switch (key) {
+    //       case 'url':
+    //         this.taskForm.url = value;
+    //         break;
+    //       case 'name':
+    //         this.taskForm.name = value;
+    //         break;
+    //       case 'referer':
+    //         this.taskForm.headers = `referer:${value}`;
+    //     }
+    //   })
+    // })
   },
   setup() {
-    const tasks: VideoTaskBrief[] = reactive([])
+    const tasks: MusicTaskBrief[] = reactive([])
 
-    const taskForm: VideoTaskForm = reactive({
-      url: "",
-      name: "",
+    const taskForm: MusicTaskForm = reactive({
+      musicId: "",
+      type: MusicType.WY163,
       dir: "",
-      prefix: "",
-      headers: "",
+      qqmusicCookie: '',
+      wymusicCookie: "",
       proxy: "",
-      thread: "40",
     })
+    console.log('gajonchen taskFrom', taskForm, MusicType)
 
     const sortTasks = computed(() => {
       return tasks
         .map((t) => {
-          let loadedSegs = t.segs.filter((i) => i === TaskSegStatus.downloaded)
-          let description
+          let description = '';
+          description += `封面：${t.hasAlbum ? '✅' : '❎'} `
+          description += `音频：${t.hasAudio ? '✅' : '❎'} `
+                    
           switch (t.status) {
-            case TaskStatus.initing:
-              description = '初始化...'
-              break
             case TaskStatus.merging:
-              description = "合并中..."
+              description += "合并中..."
               break
             case TaskStatus.merged:
-              description = "任务完成"
+              description += "任务完成"
               break
             case TaskStatus.mergeFailed:
-              description = "合并失败，具体看日志"
-            default:
-              description = `片段 ${loadedSegs.length} / ${t.segLen}`
-              if (t.currentThread) {
-                description += `  |  live并发数 ${t.currentThread} `;
-              }
+              description += "合并失败，具体看日志"
               break
           }
 
@@ -287,18 +245,16 @@ export default defineComponent({
             id: t.id,
             filename: t.filename,
             status: t.status,
-            perc: +((loadedSegs.length * 100) / t.segLen).toFixed(2),
             description: description,
             log: t.logs.join('\n'),
           }
         })
-        .sort((left, right) => left.perc - right.perc)
     })
 
     return { tasks, taskForm, sortTasks }
   },
   methods: {
-    pushTask(task: VideoTaskBrief) {
+    pushTask(task: MusicTaskBrief) {
       task.logs = task.logs || []
       const existIdx = this.tasks.findIndex(t => t.id == task.id);
       if (existIdx == -1) {
@@ -311,22 +267,22 @@ export default defineComponent({
       this.createPanel = !this.createPanel
     },
     startDownload(id: string) {
-      this.$bus.emit(VideoDLerEvent.TaskStarting, id)
+      this.$bus.emit(MusicDlerEvent.TaskStarting, id)
     },
     stopDownload(id: string) {
-      this.$bus.emit(VideoDLerEvent.TaskStoping, id)
+      this.$bus.emit(MusicDlerEvent.TaskStoping, id)
     },
     selectFile() {
-      this.$bus.emit(VideoDLerEvent.OpenPathSelector, false);
+      this.$bus.emit(MusicDlerEvent.OpenPathSelector, false);
     },
     selectDirctor() {
-      this.$bus.emit(VideoDLerEvent.OpenPathSelector, true);
+      this.$bus.emit(MusicDlerEvent.OpenPathSelector, true);
     },
     downloadVideo() {
-      const { url, dir, name, headers, prefix, proxy, thread } = this.taskForm
+      const { musicId, type, dir, wymusicCookie, qqmusicCookie, proxy, } = this.taskForm
 
-      if (!url) {
-        this.$message.error("资源链接为必填项")
+      if (!musicId) {
+        this.$message.error("音乐id为必填项")
         return
       }
       if (!dir) {
@@ -334,9 +290,14 @@ export default defineComponent({
         return
       }
 
-      const info: Partial<VideoItem> = {
-        name: name || new Date().getTime().toString(),
-        url,
+      if (type == MusicType.WY163 && !wymusicCookie.trim()) {
+        this.$message.error("网易云Cookie为必填项")
+        return
+      }
+
+      const info: Partial<MusicItem> = {
+        musicId: musicId.trim(),
+        type,
         dir,
       }
 
@@ -357,34 +318,25 @@ export default defineComponent({
         }
       }
 
-      if (headers) {
-        let tHeaders = headers.match(/(.*?): ?(.*?)(\n|\r|$)/g)
-        info.headers = {}
-        tHeaders?.forEach((_) => {
-          const __ = _.match(/(.*?): ?(.*?)(\n|\r|$)/i)
-          if (info.headers && __ && __[1] && __[2]) {
-            info.headers[__[1]] = __[2]
-          }
-        })
+      if (type == MusicType.WY163) {
+        info.headers = {
+          'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+          'origin': 'https://music.163.com',
+          'referer':  'https://music.163.com/',
+        };
+        
+        info.headers['cookie'] = wymusicCookie.trim();
       }
 
-      if (prefix) {
-        info.prefix = prefix
-      }
-
-      if (thread)  {
-        info.thread  = +thread;
-      }
-
-      this.$bus.emit(VideoDLerEvent.ManifestLoading, info)
+      this.$bus.emit(MusicDlerEvent.AudioTaskCreate, info)
     },
 
     deleteTask(id: string) {
-      this.$bus.emit(VideoDLerEvent.TaskDeleting, id)
+      this.$bus.emit(MusicDlerEvent.TaskDeleting, id)
     },
-    checkClipboard() {
-      this.$bus.emit(VideoDLerEvent.GetClipboardData)
-    }
+    // checkClipboard() {
+    //   this.$bus.emit(MusicDlerEvent.GetClipboardData)
+    // }
   },
 })
 </script>
@@ -421,6 +373,8 @@ export default defineComponent({
     width: 50%;
     margin-left: 20px;
     margin-right: 20px;
+    display: flex;
+    align-items: center;
 
     .desc_error {
       color: red;
@@ -513,6 +467,15 @@ export default defineComponent({
         }
       }
 
+      input[type=radio] {
+        width: auto;
+        margin-right: 16px;
+      }
+
+      label[for] {
+        user-select: none;
+      }
+ 
       textarea {
         vertical-align: top;
         width: calc(100% - 145px);

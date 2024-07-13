@@ -4,6 +4,10 @@
       <lucky-icon icon="video-downloader" :size="80"></lucky-icon>
       <span>视频下载器</span>
     </div>
+    <div class="selection" title="支持网易云" @click="toMusic">
+      <lucky-icon icon="music" :size="80"></lucky-icon>
+      <span>音乐下载器</span>
+    </div>
   </div>
 </template>
 
@@ -17,6 +21,9 @@ export default defineComponent({
     toDownloader() {
       this.$router.push("/downloader")
     },
+    toMusic() {
+      this.$router.push("/music")
+    }
   },
 })
 </script>
@@ -24,8 +31,8 @@ export default defineComponent({
 <style lang="scss" scoped>
 .selection {
   display: inline-block;
-  margin-left: 20px;
-  margin-top: 20px;
+  margin-left: 80px;
+  margin-top: 80px;
   text-align: center;
   font-size: 0.9em;
   cursor: pointer;
