@@ -7,15 +7,15 @@ const logger = createLogger("main/mp3-merge")
 
 export default class Joiner {
   private name: string
-  private artist: string
+  private artists: Array<string>
   private dir: string
   private ffIns: Ffmpeg.FfmpegCommand = null
   private joining: boolean
 
-  constructor(dir: string, name: string, artist: string) {
+  constructor(dir: string, name: string, artists: Array<string>) {
     this.dir = dir
     this.name = name
-    this.artist = artist;
+    this.artists = artists;
     this.joining = false
   }
 
@@ -32,10 +32,10 @@ export default class Joiner {
       options.push('-id3v2_version', '3');
     }
 
-    options.push('-metadata', `title="${this.name}"`);
+    options.push('-metadata', `title=${this.name}`);
     
-    if (this.artist) {
-      options.push('-metadata', `artist="${this.artist}"`);
+    if (this.artists) {
+      options.push('-metadata', `artist=${this.artists.join(';')}`);
     }
     
 

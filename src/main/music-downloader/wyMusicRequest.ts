@@ -30,7 +30,7 @@ class WYMusicRequest {
     const song = (detail as any).songs[0];
     return {
       name: song.name || '',
-      artist: song.ar?.[0]?.name || '',
+      artists: (song.ar?.map(s => s.name) || []).filter(t => !!t),
       pic: song.al?.picUrl || '',
     };
   }

@@ -10,8 +10,8 @@ function findAll() {
   return DB.find<MusicItem>({})
 }
 
-function updateNameArticle(id: string, name: string, article: string) {
-  return DB.update({ _id: id }, { $set: { name, article } }, {})
+function updateNameArtists(id: string, name: string, artists: Array<string>) {
+  return DB.update({ _id: id }, { $set: { name, artists } }, {})
 }
 
 function updateFlagTrue(id: string, key: string) {
@@ -23,4 +23,4 @@ function remove(id: string) {
 }
 
 
-export { findByMusicId, create, updateFlagTrue, findAll, remove, updateNameArticle }
+export { findByMusicId, create, updateFlagTrue, findAll, remove, updateNameArtists }

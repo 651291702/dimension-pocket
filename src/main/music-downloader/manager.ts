@@ -2,7 +2,7 @@ import EventBus, { MusicDlerEvent } from "~/commons/eventbus"
 import { download,  generateProxy, generateHeaders } from "~/commons/request"
 // @ts-ignore
 import { MusicItem } from "~/commons/database/music-downloader"
-import { findByMusicId, create, findAll, remove, updateFlagTrue, updateNameArticle, } from "./model"
+import { findByMusicId, create, findAll, remove, updateFlagTrue, updateNameArtists, } from "./model"
 import { join } from "path"
 import { createDir, handleReqeustError, } from "~/commons/util"
 import Joiner from "./joiner"
@@ -68,15 +68,15 @@ export default class DownloaderManager {
           logger.error(`Music ${oriMusic.musicId}-${oriMusic.type} detail get failed`);
           return {
             name: '',
-            artist: '',
+            artists: [],
             pic: '',
           }
         });
 
         if (!data.name) return;
         info.name = data.name;
-        info.artist = data.artist;
-        updateNameArticle(oriMusic._id, data.name, data.artist);
+        info.artists = data.artists;
+        updateNameArtists(oriMusic._id, data.name, data.artists);
       }
 
       const task = new Task(bus, oriMusic._id, info)
@@ -153,7 +153,7 @@ class Task {
     this.music = music
     this.options = generateRequestOption(music)
     this.dir = join(music.dir, music.name)
-    this.joiner = new Joiner(music.dir, music.name, music.artist)
+    this.joiner = new Joiner(music.dir, music.name, music.artists)
     
 
     if (music.merge) {
@@ -171,7 +171,7 @@ class Task {
       id: this.id,
       filename: this.music.name,
       status: this.status,
-      artist: this.music.artist,
+      artists: this.music.artists,
       hasAudio: this.music.hasAudio,
       hasAlbum: this.music.hasAlbum,
     })

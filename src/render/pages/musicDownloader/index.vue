@@ -6,7 +6,7 @@
           <div class="task-list">
             <div class="task-item" v-for="item in sortTasks" :key="item.id">
               <div class="task-item__name">
-                <span>{{ item.filename }}-{{ item.artist }}</span>
+                <span>{{ item.filename }} {{ item.artist ? `- ${item.artist}` : '' }}</span>
               </div>
               <div class="task-item__progress">
                 <div :class="{ 'desc_error': item.log }" @click="item.log && $message.error(item.log)">{{ item.description }}</div>
@@ -101,7 +101,7 @@ import { TaskStatus, MusicType } from "~/main/music-downloader/typs"
 interface MusicTaskBrief {
   id: string
   filename: string
-  artist: string
+  artists: Array<string>
   status: TaskStatus
   hasAudio: boolean
   hasAlbum: boolean
@@ -244,6 +244,7 @@ export default defineComponent({
           return {
             id: t.id,
             filename: t.filename,
+            artist: t.artists.join('/'),
             status: t.status,
             description: description,
             log: t.logs.join('\n'),
@@ -362,7 +363,7 @@ export default defineComponent({
   }
 
   &__name {
-    width: 20%;
+    width: 55%;
     min-width: 150px;
 
     @include trim;
@@ -370,9 +371,10 @@ export default defineComponent({
   }
 
   &__progress {
-    width: 50%;
-    margin-left: 20px;
-    margin-right: 20px;
+    width: 30%;
+    min-width: 240px;
+    margin-left: 10px;
+    margin-right: 10px;
     display: flex;
     align-items: center;
 
@@ -415,6 +417,10 @@ export default defineComponent({
   width: 100%;
   height: 100%;
   background: rgb(241 249 255);
+//  background-size: 10%;
+//  background-repeat: repeat-x;
+//  background-image: url(https://0.z.wiki/autoupload/20240713/TL41/1211X1505/baby.png?type=ha);
+//  background-position: 50% 100%;
   z-index: 100;
 
   &__header {

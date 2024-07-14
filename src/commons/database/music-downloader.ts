@@ -21,7 +21,7 @@ export type MusicItem = {
   hasAudio: boolean
   hasAlbum: boolean
   name: string // filename
-  artist: string
+  artists: Array<string>
   dir: string // target dir
   merge: boolean
   headers?: RequestHeaders
