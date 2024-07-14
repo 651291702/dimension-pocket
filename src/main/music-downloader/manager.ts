@@ -213,7 +213,9 @@ class Task {
     await this.downloadAudio();
 
     if (this.music.hasAudio) {
+      this.status = TaskStatus.merging;
       this.mergeAudioAndAlbum();
+      this.bus.emit(MusicDlerEvent.TaskStatusChanged, this.id, this.status)
     }
 
   }
