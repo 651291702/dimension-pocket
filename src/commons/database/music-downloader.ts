@@ -17,6 +17,7 @@ const ins = Datastore.create({
 
 export type MusicItem = {
   musicId: string
+  playlistId: string
   type: MusicType
   hasAudio: boolean
   hasAlbum: boolean

@@ -54,6 +54,11 @@
           </div>
 
           <div class="create-panel__form-field">
+            <label>歌单id</label>
+            <input type="text" spellcheck="false" v-model="taskForm.playlistId"  class="pr-6" />
+          </div>
+
+          <div class="create-panel__form-field">
             <input type="radio" id="wy163" name="musictype" :value="MusicType.WY163" v-model="taskForm.type" checked/>
             <label for="wy163">网易云音乐</label>
           
@@ -97,6 +102,7 @@ import { MusicDlerEvent } from "~/commons/eventbus"
 import { MusicItem } from "~/commons/database/music-downloader"
 import { musicDler as DB } from "~/commons/database"
 import { TaskStatus, MusicType } from "~/main/music-downloader/typs"
+import { takeHeapSnapshot } from "process"
 
 interface MusicTaskBrief {
   id: string
@@ -110,6 +116,7 @@ interface MusicTaskBrief {
 
 interface MusicTaskForm {
   musicId: string
+  playlistId: string
   type: MusicType,
   dir: string
   qqmusicCookie: string
@@ -138,6 +145,7 @@ export default defineComponent({
       if (this.createPanel) {
         this.toggleCreatePanel()
         this.taskForm.musicId = ""
+        this.taskForm.playlistId = ""
       }
     })
 
@@ -214,6 +222,7 @@ export default defineComponent({
 
     const taskForm: MusicTaskForm = reactive({
       musicId: "",
+      playlistId: "",
       type: MusicType.WY163,
       dir: "",
       qqmusicCookie: '',
@@ -249,6 +258,15 @@ export default defineComponent({
             description: description,
             log: t.logs.join('\n'),
           }
+        }).sort((a, b) => {
+          const aheadStatus = [TaskStatus.started, TaskStatus.paused];
+          if (aheadStatus.includes(a.status)) {
+            return -1;
+          }
+          if (aheadStatus.includes(b.status)) {
+            return 1;
+          }
+          return -1;
         })
     })
 
@@ -280,10 +298,10 @@ export default defineComponent({
       this.$bus.emit(MusicDlerEvent.OpenPathSelector, true);
     },
     downloadVideo() {
-      const { musicId, type, dir, wymusicCookie, qqmusicCookie, proxy, } = this.taskForm
+      const { musicId, playlistId, type, dir, wymusicCookie, qqmusicCookie, proxy, } = this.taskForm
 
-      if (!musicId) {
-        this.$message.error("音乐id为必填项")
+      if (!musicId && !playlistId) {
+        this.$message.error("音乐id、歌单id必填一项")
         return
       }
       if (!dir) {
@@ -298,6 +316,7 @@ export default defineComponent({
 
       const info: Partial<MusicItem> = {
         musicId: musicId.trim(),
+        playlistId: playlistId.trim(),
         type,
         dir,
       }

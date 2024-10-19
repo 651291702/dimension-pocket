@@ -12,5 +12,5 @@ module.exports = {
     sourcemap: true,
   },
   plugins: [nodeResolve({ jsnext: true, preferBuiltins: true, browser: true }), commonjs(), typescript(), json()],
-  external: ["fs", "path", "http", "https", "child_process", "os", "electron", "util", "zlib", "buffer", "events"],
+  external: ["fs", "path", "http", "https", "child_process", "os", "electron", "util", "zlib", "buffer", "events", "sharp"],
 }

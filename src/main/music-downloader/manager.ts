@@ -12,6 +12,7 @@ import { readFileSync, accessSync, constants, rmdirSync } from "fs"
 import { getEleModule } from "~/commons/util"
 import { Dialog, clipboard } from "electron"
 import wyMusicRequest from './wyMusicRequest';
+import imageResize from './imageResize';
 
 const logger = createLogger("main/music-manager")
 
@@ -51,6 +52,15 @@ export default class DownloaderManager {
     this.tasks = []
     this.registed = false
     bus.on(MusicDlerEvent.AudioTaskCreate, async (_, info: MusicItem) => {
+      if (info.playlistId) {
+        const songIds = await wyMusicRequest.getPlaylist(info.playlistId, generateRequestOption(info));
+        songIds.forEach(songId => {
+          const newInfo = Object.assign({}, info, { playlistId: '', musicId: songId })
+          bus.emit(MusicDlerEvent.AudioTaskCreate, newInfo);
+        });
+        return;
+      }
+
       let oriMusic = await findByMusicId(info.musicId, info.type)
       if (!oriMusic) {
         oriMusic = await create({
@@ -78,6 +88,8 @@ export default class DownloaderManager {
         info.artists = data.artists;
         updateNameArtists(oriMusic._id, data.name, data.artists);
       }
+
+      info.name = info.name.replace('.', ' ').replace('?', '？').trim();
 
       const task = new Task(bus, oriMusic._id, info)
       
@@ -158,6 +170,10 @@ class Task {
 
     if (music.merge) {
       this.status = TaskStatus.merged
+      setTimeout(() => {
+        this.bus.emit(MusicDlerEvent.TaskDeleting, id)
+      })
+      return;
     } else {
       this.status = TaskStatus.paused
     }
@@ -243,7 +259,8 @@ class Task {
     const data = await wyMusicRequest.getSongDetail(this.music.musicId);
 
     if (data.pic ) {
-      await download(data.pic, this.dir, `${data.name}.image`, this.options)
+      await download(data.pic, this.dir, `${this.music.name}.image`, this.options)
+      await imageResize(this.dir, `${this.music.name}.image`);
       this.music.hasAlbum = true;
       updateFlagTrue(this.id, 'hasAlbum');
       this.emitTaskInfo(true);
