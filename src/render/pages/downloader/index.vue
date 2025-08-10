@@ -98,12 +98,11 @@
             <input type="text" v-model="taskForm.proxy" placeholder="[选填]仅支持HTTP协议，格式ip:port" />
           </div>
 
-<!--
           <div class="create-panel__form-field">
             <label>并发数</label>
-            <input type="text" v-model="taskForm.thread" placeholder="[选填]默认为20" /> 
+            <input type="text" v-model="taskForm.thread" placeholder="[选填]默认为40" /> 
           </div>
--->
+
           <div class="create-panel__form-field">
             <label>下载至</label>
             <input type="text" spellcheck="false" v-model="taskForm.dir" class="cursor-not-allowed pr-6" disabled />

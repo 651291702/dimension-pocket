@@ -4,10 +4,12 @@
       <lucky-icon icon="video-downloader" :size="80"></lucky-icon>
       <span>视频下载器</span>
     </div>
+    <!--
     <div class="selection" title="支持网易云" @click="toMusic">
       <lucky-icon icon="music" :size="80"></lucky-icon>
       <span>音乐下载器</span>
     </div>
+    -->
   </div>
 </template>
 

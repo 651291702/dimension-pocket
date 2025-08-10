@@ -12,7 +12,7 @@ import Joiner from "./ts-merge"
 import { TaskStatus, TaskSegStatus } from "./typs"
 import { createLogger } from "~/main/logger"
 import { createDecipheriv } from "crypto"
-import { readFileSync, accessSync, constants, rmdirSync } from "fs"
+import { readFileSync, accessSync, constants, rmdirSync, writeFileSync } from "fs"
 import { getEleModule } from "~/commons/util"
 import { Dialog, clipboard } from "electron"
 
@@ -41,7 +41,9 @@ function generateRequestOption(video: VideoItem) {
     generateHeaders(opt, video.headers)
   }
 
-  (opt as any).timeout = 30 * 1000
+  (opt as any).timeout = {
+    request: 60 * 1000,    
+  }
 
   return opt
 }
@@ -69,7 +71,7 @@ export default class DownloaderManager {
           segLen: oriVideo.totalSegs || 9999,
           segs: oriVideo.segs,
           status: TaskStatus.initing,
-        });
+        })
       }
       
       logger.info("create task", info, oriVideo)
@@ -84,11 +86,11 @@ export default class DownloaderManager {
       if (info.url.match(NetUrlRex)) {
         logger.info("request m3u8 text with opt", generateRequestOption(oriVideo))
         m3u8Text = await get(info.url, generateRequestOption(oriVideo)).text().catch(err => {
-          const error = handleReqeustError(err);
+          const error = handleReqeustError(err)
           bus.emit(VideoDLerEvent.Error, oriVideo._id, error)
           logger.error(`Video ${oriVideo.name} m3u8 load failed ${JSON.stringify(error)}`)
         })
-        if (!m3u8Text) return;
+        if (!m3u8Text) return
       } else {
         m3u8Text = readFileSync(info.url, "utf8")
       }
@@ -407,7 +409,7 @@ class Task {
     this.bus.emit(VideoDLerEvent.TaskUpdated, this.id, this.segs)
 
     let error = null
-    await this.downloadSeg(idx).catch((err) => {
+    const tsPath = await this.downloadSeg(idx).catch((err) => {
       error = err
       this.tryCountSegs[idx]++
       this.segs[idx] = TaskSegStatus.idel
@@ -422,6 +424,7 @@ class Task {
         this.threadDownload(idx)
       }
     } else {
+      if (tsPath) this.validateTs(tsPath)
       logger.info(`download ${this.video.name} with index ${idx} success`)
       this.segs[idx] = TaskSegStatus.downloaded
       this.bus.emit(VideoDLerEvent.TaskUpdated, this.id, this.segs)
@@ -431,6 +434,35 @@ class Task {
       this.threadDownload(idx + 1)
     }
   }
+
+  
+  
+  validateTs(filepath: string) {
+    const TS_PACKET_SIZE = 188
+    const SYNC_BYTE = 0x47
+    const buffer = readFileSync(filepath)
+    let offset = 0
+
+    // 找到第一个合法的 0x47 同步字节
+    while (offset < buffer.length - TS_PACKET_SIZE) {
+      if (buffer[offset] === SYNC_BYTE && buffer[offset + TS_PACKET_SIZE] === SYNC_BYTE) {
+        break
+      }
+      offset++
+    }
+
+    if (offset >= buffer.length - TS_PACKET_SIZE) {
+      // logger.error(`❌ 未找到合法的 TS 包起始位置 ${filepath}`)
+      return
+    }
+    if (offset === 0) {
+      return
+    }
+
+    const tsData = buffer.slice(offset)
+    writeFileSync(filepath, tsData as any)
+    // logger.info(`✅ 已原地替换 ${filepath}，跳过前 ${offset} 字节`)
+}
 
   findAvailable(from = 0) {
     let i = from
@@ -455,9 +487,11 @@ class Task {
     } else {
       const iv = normalizateIv(segment.key?.iv || idx)
       const algorithm = `${segment.key?.method}-cbc`.toLowerCase()
-      const cipher = createDecipheriv(algorithm, this.key as Buffer, iv)
+      const cipher = createDecipheriv(algorithm, this.key as any, iv as any)
       await download(url, this.dir, `${idx}.ts`, this.options, cipher)
     }
+
+    return join(this.dir, `${idx}.ts`)
   }
 
   destory() {
