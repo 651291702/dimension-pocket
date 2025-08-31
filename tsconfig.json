@@ -3,7 +3,7 @@
     "target":  "ESNext",
     "module": "ESNext",
     "moduleResolution": "node",
-    "lib": ["ES2015", "ES2017", "DOM", "ESNext"],
+    "lib": ["ES2015", "ES2017", "ES2020", "DOM", "DOM.Iterable", "ESNext"],
     "importHelpers": true,
     "sourceMap": true,
     "allowJs": true,

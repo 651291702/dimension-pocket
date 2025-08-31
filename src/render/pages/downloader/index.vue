@@ -249,6 +249,10 @@ export default defineComponent({
         }
       })
     })
+
+    this.$bus.on(VideoDLerEvent.OpenCreatePanel, (_, data: Record<string, string>) => {
+      this.createPanel = true;
+    })
   },
   setup() {
     const tasks: VideoTaskBrief[] = reactive([])

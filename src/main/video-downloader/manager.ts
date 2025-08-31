@@ -1,5 +1,5 @@
 import got from "got"
-import EventBus, { VideoDLerEvent } from "~/commons/eventbus"
+import EventBus, { ProtocolEvent, VideoDLerEvent } from "~/commons/eventbus"
 import { download, get, generateProxy, generateHeaders } from "~/commons/request"
 import { buildAbsoluteURL } from "url-toolkit"
 // @ts-ignore
@@ -184,6 +184,13 @@ export default class DownloaderManager {
 
     bus.on(VideoDLerEvent.GetClipboardData, (_) => {
       this.bus.emit(VideoDLerEvent.GetClipboardDataCallback, clipboard.readText())
+    })
+
+    bus.on(ProtocolEvent.ProtocolAwake, (_, url) => {
+      const uri = new URL(url)
+      if (uri.host === "createVideoTask") {
+        this.bus.emit(VideoDLerEvent.OpenCreatePanel)
+      } 
     })
   }
 }

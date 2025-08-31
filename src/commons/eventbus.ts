@@ -98,6 +98,7 @@ export const VideoDLerEvent = {
   TaskDeleting: "TaskDeleting",
   TaskDeleted: "TaskDeleted",
   ThreadUpdate: "ThreadUpdate",
+  OpenCreatePanel: "OpenCreatePanel",
   OpenPathSelector: "OpenPathSelector",
   OpenPathSelectorEnd: "OpenPathSelectorEnd",
   GetClipboardData: "GetClipboardData",
@@ -120,4 +121,8 @@ export const MusicDlerEvent = {
   OpenPathSelector: "M-OpenPathSelector",
   OpenPathSelectorEnd: "M-OpenPathSelectorEnd",
   Error: "M-Error",
+}
+
+export const ProtocolEvent = {
+  ProtocolAwake: "ProtocolAwake",
 }

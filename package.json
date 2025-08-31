@@ -95,7 +95,13 @@
     ],
     "win": {
       "icon": "public/icon.png"
-    }
+    },
+    "protocols": [
+      {
+        "name": "dimension-pocket",
+        "schemes": ["dpocket"]
+      }
+    ]
   },
   "license": "MIT"
 }

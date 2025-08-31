@@ -1,14 +1,15 @@
 /**
  * electron 主文件
  */
-import { join } from "path"
+import { join, resolve } from "path"
 import { app, BrowserWindow, BrowserWindowConstructorOptions, Menu } from "electron"
 import { createLogger } from "~/main/logger"
-import EventBus from "~/commons/eventbus"
+import EventBus, { ProtocolEvent } from "~/commons/eventbus"
 import VideoDlerManager from "./video-downloader/manager"
 // import MusicDlerManager from "./music-downloader/manager"
 const is_dev = require("electron-is-dev")
 
+const PROTOCOL_SCHEME = "dpocket"
 let win: BrowserWindow
 let bus: EventBus
 
@@ -20,7 +21,7 @@ function existInstance(): boolean {
     app.exit()
     return true
   }
-  app.on("second-instance", () => {
+  app.on("second-instance", (event, commandLine) => {
     if (win) {
       if (win.isMinimized()) {
         win.restore()
@@ -29,6 +30,12 @@ function existInstance(): boolean {
       } else {
         win.show()
         win.focus()
+      }
+      const url = commandLine.pop()
+      if (url && url.startsWith(`${PROTOCOL_SCHEME}://`)) {
+        // handleProtocolUrl(url)
+        console.log(`[DEV] awake protocol url ${url}`)
+        bus.emit(ProtocolEvent.ProtocolAwake, url)
       }
     } else {
       app.exit()
@@ -72,6 +79,19 @@ function createWin(config?: BrowserWindowConstructorOptions | void): BrowserWind
 
 function main(): void {
   if (existInstance()) return
+  if (is_dev) {
+    if (process.platform === "win32") {
+      // Windows 开发模式下必须指定 electron.exe 路径和当前项目路径
+      const isSet = app.setAsDefaultProtocolClient(
+        PROTOCOL_SCHEME,
+        process.execPath,
+        [resolve(__dirname, "../")],
+      )
+      console.log(`[DEV] Protocol registered: ${isSet} ${process.execPath} ${resolve(__dirname, "../")}`)
+    }
+  } else {
+    app.setAsDefaultProtocolClient(PROTOCOL_SCHEME)
+  }
   app
     .whenReady()
     .then(createWin)
